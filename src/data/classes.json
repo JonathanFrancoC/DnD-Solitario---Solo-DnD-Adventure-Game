@@ -1,0 +1,487 @@
+{
+  "classes": {
+    "bardo": {
+      "name": "Bardo",
+      "hitDie": "d8",
+      "spellcastingAbility": "charisma",
+      "proficiencies": {
+        "armor": ["light"],
+        "weapons": ["simple", "hand crossbow", "longsword", "rapier", "shortsword"],
+        "tools": ["three musical instruments"],
+        "savingThrows": ["dexterity", "charisma"],
+        "skills": {
+          "count": 3,
+          "options": ["Acrobatics", "Animal Handling", "Arcana", "Athletics", "Deception", "History", "Insight", "Intimidation", "Investigation", "Medicine", "Nature", "Perception", "Performance", "Persuasion", "Religion", "Sleight of Hand", "Stealth", "Survival"]
+        }
+      },
+      "startingEquipment": [
+        "Vara",
+        "Componente de conjuro",
+        "Mochila de erudito",
+        "Ropa de viajero",
+        "Poción de curación",
+        "Daga",
+        "Pergaminos",
+        "Tinta y pluma"
+      ],
+      "subclasses": {
+        "college_of_lore": {
+          "name": "Colegio del Conocimiento",
+          "description": "Los bardos del Colegio del Conocimiento son los verdaderos eruditos de la música, coleccionando historias, canciones y hechizos de tierras lejanas. Su amplio conocimiento y magia versátil los convierte en excelentes diplomáticos, espías y sabios.",
+          "playstyle": "Apoyo y utilidad, con acceso a hechizos de cualquier clase",
+          "combatRole": "Apoyo, control de multitudes, utilidad",
+          "features": {
+            "3": {
+              "name": "Proficiencias Adicionales",
+              "description": "Ganas proficiencia en 3 habilidades adicionales de tu elección. Esto te permite especializarte en áreas como investigación, diplomacia o supervivencia.",
+              "benefit": "Mayor versatilidad en habilidades"
+            },
+            "6": {
+              "name": "Secretos Mágicos Adicionales",
+              "description": "Aprendes 2 hechizos de cualquier clase. Puedes elegir hechizos que normalmente no están disponibles para bardos, como hechizos de curación del clérigo o hechizos de daño del mago.",
+              "benefit": "Acceso a hechizos únicos de otras clases"
+            },
+            "14": {
+              "name": "Habilidad Sin Igual",
+              "description": "Puedes usar tu Inspiración Bárdica en tiradas de habilidad. Cuando un aliado (o tú mismo) haga una tirada de habilidad, puedes gastar una inspiración para añadir 1d6 al resultado.",
+              "benefit": "Mejora significativa en tiradas de habilidad"
+            }
+          }
+        },
+        "college_of_valor": {
+          "name": "Colegio del Valor",
+          "description": "Los bardos del Colegio del Valor son guerreros-poetas que combinan la magia bárdica con habilidades marciales. Inspiran a sus aliados en la batalla mientras luchan en primera línea con armas y armadura.",
+          "playstyle": "Combate híbrido, mezclando magia con ataques de arma",
+          "combatRole": "Daño híbrido, apoyo en combate",
+          "features": {
+            "3": {
+              "name": "Proficiencias Adicionales",
+              "description": "Ganas proficiencia en armas marciales, armadura media y escudos. Esto te permite luchar efectivamente en combate cuerpo a cuerpo.",
+              "benefit": "Mejor capacidad de combate físico"
+            },
+            "6": {
+              "name": "Ataque Extra",
+              "description": "Puedes atacar dos veces en lugar de una cuando tomas la acción de Ataque en tu turno. Esto aumenta significativamente tu daño por turno.",
+              "benefit": "Mayor daño por turno"
+            },
+            "14": {
+              "name": "Magia de Batalla",
+              "description": "Puedes lanzar un hechizo y hacer un ataque con arma en el mismo turno. Esto te permite combinar magia y combate físico de manera fluida.",
+              "benefit": "Combina magia y ataques de arma"
+            }
+          }
+        }
+      }
+    },
+    "mago": {
+      "name": "Mago",
+      "hitDie": "d6",
+      "spellcastingAbility": "intelligence",
+      "proficiencies": {
+        "armor": ["light"],
+        "weapons": ["simple"],
+        "tools": ["none"],
+        "savingThrows": ["intelligence", "wisdom"],
+        "skills": {
+          "count": 2,
+          "options": ["Arcana", "History", "Insight", "Investigation", "Medicine", "Religion"]
+        }
+      },
+      "startingEquipment": [
+        "Vara",
+        "Componente de conjuro",
+        "Mochila de erudito",
+        "Ropa de viajero",
+        "Poción de curación",
+        "Daga",
+        "Pergaminos",
+        "Tinta y pluma"
+      ],
+      "subclasses": {
+        "school_of_abjuration": {
+          "name": "Escuela de Abjuración",
+          "description": "Los magos de la Escuela de Abjuración son especialistas en magia protectora y defensiva. Dominan hechizos que protegen, bloquean y repelen amenazas, convirtiéndose en guardianes mágicos formidables.",
+          "playstyle": "Defensa y protección, especializado en hechizos de abjuración",
+          "combatRole": "Tank mágico, protección de aliados",
+          "features": {
+            "2": {
+              "name": "Sabio de Abjuración",
+              "description": "Los hechizos de abjuración cuestan la mitad de tiempo y oro para copiarlos en tu grimorio. Esto te permite expandir tu colección de hechizos protectores más rápidamente.",
+              "benefit": "Ahorro de tiempo y recursos para hechizos de abjuración"
+            },
+            "2": {
+              "name": "Escudo Arcano",
+              "description": "Creas un escudo mágico que absorbe daño. Cuando lanzas un hechizo de abjuración de 1er nivel o superior, ganas un escudo temporal que absorbe daño igual a 2 × el nivel del hechizo + tu modificador de Inteligencia.",
+              "benefit": "Protección automática al lanzar hechizos de abjuración"
+            },
+            "6": {
+              "name": "Escudo Proyectado",
+              "description": "Puedes transferir tu Escudo Arcano a otros. Como reacción cuando una criatura dentro de 30 pies de ti recibe daño, puedes transferir tu escudo a esa criatura.",
+              "benefit": "Protección de aliados a distancia"
+            },
+            "10": {
+              "name": "Abjuración Mejorada",
+              "description": "Ventaja en tiradas de salvación contra hechizos. Tu especialización en magia protectora te da mayor resistencia contra efectos mágicos.",
+              "benefit": "Mayor resistencia a hechizos enemigos"
+            },
+            "14": {
+              "name": "Resistencia a Hechizos",
+              "description": "Resistencia al daño de hechizos. Tu maestría en abjuración te da resistencia contra el daño de hechizos.",
+              "benefit": "Reducción del daño de hechizos enemigos"
+            }
+          }
+        },
+        "school_of_evocation": {
+          "name": "Escuela de Evocación",
+          "description": "Los magos de la Escuela de Evocación son maestros de la magia destructiva. Dominan hechizos que causan daño masivo y controlan los elementos, convirtiéndose en artilleros mágicos devastadores.",
+          "playstyle": "Daño masivo, control de elementos, hechizos de área",
+          "combatRole": "Artillero mágico, daño de área",
+          "features": {
+            "2": {
+              "name": "Sabio de Evocación",
+              "description": "Los hechizos de evocación cuestan la mitad de tiempo y oro para copiarlos en tu grimorio. Esto te permite expandir tu arsenal de hechizos destructivos más rápidamente.",
+              "benefit": "Ahorro de tiempo y recursos para hechizos de evocación"
+            },
+            "2": {
+              "name": "Esculpir Hechizos",
+              "description": "Puedes proteger aliados de tus hechizos de área. Cuando lanzas un hechizo de evocación que afecta a otras criaturas, puedes elegir un número de ellas igual a 1 + el nivel del hechizo para que no reciban daño.",
+              "benefit": "Lanzar hechizos de área sin dañar aliados"
+            },
+            "6": {
+              "name": "Truco Potente",
+              "description": "Los trucos causan daño completo incluso en fallos. Cuando una criatura falla su tirada de salvación contra tu truco de evocación, recibe la mitad del daño en lugar de ninguno.",
+              "benefit": "Daño garantizado con trucos de evocación"
+            },
+            "10": {
+              "name": "Evocación Potenciada",
+              "description": "Añades tu modificador de Inteligencia al daño de hechizos de evocación. Esto aumenta significativamente el daño de tus hechizos destructivos.",
+              "benefit": "Mayor daño con hechizos de evocación"
+            },
+            "14": {
+              "name": "Sobrecanalización",
+              "description": "Puedes maximizar el daño de hechizos de evocación. Una vez por día, puedes hacer que un hechizo de evocación de 5to nivel o inferior cause el máximo daño posible.",
+              "benefit": "Daño máximo garantizado una vez por día"
+            }
+          }
+        }
+      }
+    },
+    "brujo": {
+      "name": "Brujo",
+      "hitDie": "d8",
+      "spellcastingAbility": "charisma",
+      "proficiencies": {
+        "armor": ["light"],
+        "weapons": ["simple"],
+        "tools": ["none"],
+        "savingThrows": ["wisdom", "charisma"],
+        "skills": {
+          "count": 2,
+          "options": ["Arcana", "Deception", "History", "Intimidation", "Investigation", "Nature", "Religion"]
+        }
+      },
+      "startingEquipment": [
+        "Vara",
+        "Componente de conjuro",
+        "Mochila de erudito",
+        "Ropa de viajero",
+        "Poción de curación",
+        "Daga",
+        "Pergaminos",
+        "Tinta y pluma"
+      ],
+      "subclasses": {
+        "the_fiend": {
+          "name": "El Demonio",
+          "description": "Brujos que han hecho pacto con demonios",
+          "features": {
+            "1": {
+              "name": "Bendición del Oscuro",
+              "description": "Ganas puntos de vida temporales al reducir enemigos a 0 HP"
+            },
+            "6": {
+              "name": "Suerte del Oscuro",
+              "description": "Puedes añadir 1d10 a una tirada de salvación"
+            },
+            "10": {
+              "name": "Resistencia Demoníaca",
+              "description": "Resistencia a un tipo de daño de tu elección"
+            },
+            "14": {
+              "name": "Lanzar al Infierno",
+              "description": "Puedes enviar enemigos a través del infierno"
+            }
+          }
+        },
+        "the_great_old_one": {
+          "name": "El Antiguo",
+          "description": "Brujos que han hecho pacto con entidades cósmicas",
+          "features": {
+            "1": {
+              "name": "Mente Despierta",
+              "description": "Puedes comunicarte telepáticamente"
+            },
+            "6": {
+              "name": "Protección Entrópica",
+              "description": "Puedes imponer desventaja a ataques contra ti"
+            },
+            "10": {
+              "name": "Escudo Mental",
+              "description": "Protección contra daño psíquico y lectura de pensamientos"
+            },
+            "14": {
+              "name": "Crear Esclavo",
+              "description": "Puedes crear un sirviente mental permanente"
+            }
+          }
+        }
+      }
+    },
+    "clerigo": {
+      "name": "Clérigo",
+      "hitDie": "d8",
+      "spellcastingAbility": "wisdom",
+      "proficiencies": {
+        "armor": ["light", "medium"],
+        "weapons": ["simple"],
+        "tools": ["none"],
+        "savingThrows": ["wisdom", "charisma"],
+        "skills": {
+          "count": 2,
+          "options": ["History", "Insight", "Medicine", "Persuasion", "Religion"]
+        }
+      },
+      "startingEquipment": [
+        "Escudo",
+        "Componente de conjuro",
+        "Mochila de sacerdote",
+        "Ropa de viajero",
+        "Poción de curación",
+        "Daga",
+        "Pergaminos",
+        "Tinta y pluma"
+      ],
+      "subclasses": {
+        "life_domain": {
+          "name": "Dominio de la Vida",
+          "description": "Clérigos especializados en curación y protección",
+          "features": {
+            "1": {
+              "name": "Proficiencia Adicional",
+              "description": "Proficiencia en armadura pesada"
+            },
+            "1": {
+              "name": "Discípulo de la Vida",
+              "description": "Los hechizos de curación son más efectivos"
+            },
+            "2": {
+              "name": "Canalizar Divinidad: Preservar Vida",
+              "description": "Curación masiva usando Canalizar Divinidad"
+            },
+            "6": {
+              "name": "Sanador Bendecido",
+              "description": "Ganas puntos de vida al curar a otros"
+            },
+            "8": {
+              "name": "Golpe Divino",
+              "description": "Daño adicional con ataques de arma"
+            },
+            "17": {
+              "name": "Curación Suprema",
+              "description": "Los hechizos de curación siempre curan el máximo"
+            }
+          }
+        },
+        "light_domain": {
+          "name": "Dominio de la Luz",
+          "description": "Clérigos de la luz y el fuego sagrado",
+          "features": {
+            "1": {
+              "name": "Truco Adicional",
+              "description": "Aprendes el truco Luz"
+            },
+            "1": {
+              "name": "Destello Protector",
+              "description": "Puedes cegar atacantes con luz divina"
+            },
+            "2": {
+              "name": "Canalizar Divinidad: Resplandor del Amanecer",
+              "description": "Expulsas la oscuridad y dañas no muertos"
+            },
+            "6": {
+              "name": "Destello Mejorado",
+              "description": "Puedes usar Destello Protector más veces"
+            },
+            "8": {
+              "name": "Conjuro Potente",
+              "description": "Añades tu modificador de Sabiduría al daño de trucos"
+            },
+            "17": {
+              "name": "Corona de Luz",
+              "description": "Aura de luz que daña enemigos"
+            }
+          }
+        }
+      }
+    },
+    "guerrero": {
+      "name": "Guerrero",
+      "hitDie": "d10",
+      "proficiencies": {
+        "armor": ["light", "medium", "heavy"],
+        "weapons": ["simple", "martial"],
+        "tools": ["none"],
+        "savingThrows": ["strength", "constitution"],
+        "skills": {
+          "count": 2,
+          "options": ["Acrobatics", "Animal Handling", "Athletics", "History", "Insight", "Intimidation", "Perception", "Survival"]
+        }
+      },
+      "startingEquipment": [
+        "Armadura de cuero",
+        "Espada larga",
+        "Escudo",
+        "Mochila de explorador",
+        "Ropa de viajero",
+        "Poción de curación",
+        "Daga",
+        "Pergaminos",
+        "Tinta y pluma"
+      ],
+      "subclasses": {
+        "champion": {
+          "name": "Campeón",
+          "description": "Guerreros que se especializan en combate básico",
+          "features": {
+            "3": {
+              "name": "Crítico Mejorado",
+              "description": "Críticos con 19-20"
+            },
+            "7": {
+              "name": "Atleta Notable",
+              "description": "Bonus a saltos y natación"
+            },
+            "10": {
+              "name": "Estilo de Combate Adicional",
+              "description": "Ganas un segundo estilo de combate"
+            },
+            "15": {
+              "name": "Crítico Superior",
+              "description": "Críticos con 18-20"
+            },
+            "18": {
+              "name": "Superviviente",
+              "description": "Regeneración de puntos de vida"
+            }
+          }
+        },
+        "battle_master": {
+          "name": "Maestro de Batalla",
+          "description": "Guerreros tácticos con maniobras especiales",
+          "features": {
+            "3": {
+              "name": "Superioridad de Combate",
+              "description": "Ganas dados de superioridad y maniobras"
+            },
+            "7": {
+              "name": "Conoce a tu Enemigo",
+              "description": "Puedes estudiar enemigos para conocer sus estadísticas"
+            },
+            "10": {
+              "name": "Superioridad de Combate Mejorada",
+              "description": "Más dados de superioridad"
+            },
+            "15": {
+              "name": "Implacable",
+              "description": "Recuperas dados de superioridad al inicio del combate"
+            },
+            "18": {
+              "name": "Crítico Superior",
+              "description": "Críticos con 18-20"
+            }
+          }
+        }
+      }
+    },
+    "ladron": {
+      "name": "Ladrón",
+      "hitDie": "d8",
+      "proficiencies": {
+        "armor": ["light"],
+        "weapons": ["simple", "hand crossbow", "longsword", "rapier", "shortsword"],
+        "tools": ["thieves' tools"],
+        "savingThrows": ["dexterity", "intelligence"],
+        "skills": {
+          "count": 4,
+          "options": ["Acrobatics", "Athletics", "Deception", "Insight", "Intimidation", "Investigation", "Perception", "Performance", "Persuasion", "Sleight of Hand", "Stealth"]
+        }
+      },
+      "startingEquipment": [
+        "Armadura de cuero",
+        "Espada corta",
+        "Ballesta corta",
+        "Flechas (20)",
+        "Mochila de explorador",
+        "Ropa de viajero",
+        "Poción de curación",
+        "Daga",
+        "Pergaminos",
+        "Tinta y pluma"
+      ],
+      "subclasses": {
+        "thief": {
+          "name": "Ladrón",
+          "description": "Especialistas en sigilo y robo",
+          "features": {
+            "3": {
+              "name": "Manos Rápidas",
+              "description": "Puedes usar objetos como acción bonus"
+            },
+            "3": {
+              "name": "Trabajo de Segunda Planta",
+              "description": "Mejoras en escalada y saltos"
+            },
+            "9": {
+              "name": "Sigilo Supremo",
+              "description": "Ventaja en sigilo cuando te mueves lento"
+            },
+            "13": {
+              "name": "Usar Dispositivo Mágico",
+              "description": "Puedes usar objetos mágicos normalmente restringidos"
+            },
+            "17": {
+              "name": "Reflejos del Ladrón",
+              "description": "Puedes tomar dos turnos en la primera ronda"
+            }
+          }
+        },
+        "assassin": {
+          "name": "Asesino",
+          "description": "Especialistas en eliminar objetivos",
+          "features": {
+            "3": {
+              "name": "Proficiencias Adicionales",
+              "description": "Proficiencia en disfraces y kits de veneno"
+            },
+            "3": {
+              "name": "Asesinar",
+              "description": "Ventaja contra criaturas que no han actuado"
+            },
+            "9": {
+              "name": "Experiencia de Infiltración",
+              "description": "Puedes crear identidades falsas"
+            },
+            "13": {
+              "name": "Impostor",
+              "description": "Puedes imitar el habla y escritura de otros"
+            },
+            "17": {
+              "name": "Golpe Mortal",
+              "description": "Daño doble contra objetivos sorprendidos"
+            }
+          }
+        }
+      }
+    }
+  }
+}
