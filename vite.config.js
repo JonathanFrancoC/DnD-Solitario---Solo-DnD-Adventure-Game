@@ -12,10 +12,13 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
-    sourcemap: false,
+    sourcemap: true,
     modulePreload: { polyfill: false },
     rollupOptions: {
       input: './index.html'
     }
+  },
+  esbuild: {
+    keepNames: true
   }
 })

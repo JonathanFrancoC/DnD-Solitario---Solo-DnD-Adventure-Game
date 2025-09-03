@@ -1,17 +1,12 @@
-// Servicio para la integración con ChatGPT
+// Servicio para la integración con ChatGPT (solo Electron)
 
-// Configuración de la API
-const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions'
-
-// Función para obtener la API key del usuario
+// Función para obtener la API key del usuario (solo Electron)
 const getApiKey = async () => {
   try {
     if (window.electronAPI) {
-      // Para aplicaciones de escritorio
       return await window.electronAPI.getApiKey();
     } else {
-      // Para versión web
-      return localStorage.getItem('openai_api_key') || import.meta.env.VITE_OPENAI_API_KEY || '';
+      throw new Error('Esta aplicación solo funciona en Electron');
     }
   } catch (error) {
     console.error('Error al obtener API key:', error);
@@ -19,8 +14,7 @@ const getApiKey = async () => {
   }
 };
 
-// Para aplicaciones de escritorio, el sistema de guardado se maneja directamente
-// No necesitamos importaciones web aquí
+// Sistema de guardado manejado directamente desde Electron
 
 // Prompt maestro detallado para el DM
 const DM_PROMPT_BASE = `Eres un Dungeon Master (DM) experto de D&D 5ª edición para una campaña en solitario. Sigue estrictamente estas reglas:
@@ -445,15 +439,14 @@ const generatePromptModifiers = (gameOptions = {}) => {
 };
 
 // Función para obtener el estado completo de la campaña
-// En aplicaciones de escritorio, esto se maneja directamente desde el componente principal
 async function getCampaignState(campaignId) {
-  // Para aplicaciones de escritorio, el estado de la campaña se pasa directamente
-  // desde el componente principal que tiene acceso al sistema de archivos
+  // El estado de la campaña se maneja directamente desde el componente principal
+  // que tiene acceso al sistema de archivos de Electron
   return {
     campaign: null,
     characters: [],
     worldState: null,
-    error: 'Estado de campaña no disponible en esta versión'
+    error: 'Estado de campaña manejado por el componente principal'
   };
 }
 
@@ -480,17 +473,9 @@ Reglas importantes:
 
 export const sendMessageToDM = async (message, gameState, campaignId = null, gameOptions = {}) => {
   try {
-    // Obtener la API key del usuario
-    const apiKey = await getApiKey();
-    if (!apiKey) {
-      return `❌ Error: No se ha configurado la API key de OpenAI.
-
-Para usar la IA del juego, necesitas:
-1. Ir a las opciones del juego (⚙️)
-2. Configurar tu API key de OpenAI
-3. Obtener una key gratuita en https://platform.openai.com/api-keys
-
-Sin la API key, la IA no puede funcionar.`;
+    // Verificar si estamos en Electron
+    if (!window.electronAPI) {
+      return `❌ Error: Esta funcionalidad solo está disponible en la aplicación de escritorio.\n\nPor favor, ejecuta la aplicación desde Electron para usar la IA del juego.`;
     }
 
     // Verificar si el mensaje es una solicitud de generación de personaje
@@ -540,38 +525,64 @@ Sin la API key, la IA no puede funcionar.`;
     const promptModifiers = generatePromptModifiers(gameOptions);
     
     // Combinar el prompt base con los modificadores
-    const systemPrompt = DM_PROMPT_BASE + promptModifiers + 
+    let systemPrompt = DM_PROMPT_BASE + promptModifiers + 
       `Estado actual del juego:\n${JSON.stringify(fullGameState, null, 2)}`;
-    
-    const response = await fetch(OPENAI_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content: systemPrompt
-          },
-          {
-            role: 'user',
-            content: `Acción del jugador: ${message}`
-          }
-        ],
-        max_tokens: 1000,
-        temperature: 0.8
-      })
-    })
 
-    if (!response.ok) {
-      throw new Error(`Error de API: ${response.status}`)
+    // Agregar información del estado del turno si está disponible
+    if (gameOptions.turnState) {
+      systemPrompt += `\n\nESTADO DEL TURNO ACTUAL:\n${JSON.stringify(gameOptions.turnState, null, 2)}`;
+    }
+    
+    // Agregar acciones seleccionadas si están disponibles
+    if (gameOptions.selectedActions && gameOptions.selectedActions.length > 0) {
+      systemPrompt += `\n\nACCIONES SELECCIONADAS POR EL JUGADOR:\n${JSON.stringify(gameOptions.selectedActions, null, 2)}`;
     }
 
-    const data = await response.json()
-    return data.choices[0].message.content
+    // Agregar información sobre habilidades activadas
+    if (fullGameState?.character?.mechanics) {
+      const activeAbilities = [];
+      const mechanics = fullGameState.character.mechanics;
+      
+      if (mechanics.divineSmite?.activeLevel) {
+        activeAbilities.push(`Castigo Divino Nivel ${mechanics.divineSmite.activeLevel} (Paladín) - ACTIVO: Evalúa si se puede usar en ataques cuerpo a cuerpo exitosos`);
+      }
+      if (mechanics.sneakAttack?.active) {
+        activeAbilities.push('Ataque Furtivo (Pícaro) - ACTIVO: Evalúa si se puede usar (ventaja, aliado cerca, etc.)');
+      }
+      if (mechanics.ki?.active) {
+        activeAbilities.push('Ki (Monje) - ACTIVO: Usa puntos de ki automáticamente en ataques y habilidades cuando sea apropiado');
+      }
+      if (mechanics.rage?.active) {
+        activeAbilities.push('Furia (Bárbaro) - ACTIVO: Usa la furia automáticamente cuando sea apropiado en combate');
+      }
+      if (mechanics.bardicInspiration?.active) {
+        activeAbilities.push('Inspiración Bárdica (Bardo) - ACTIVO: Usa la inspiración automáticamente cuando sea apropiado');
+      }
+      if (mechanics.secondWind?.active) {
+        activeAbilities.push('Second Wind (Guerrero) - ACTIVO: Usa Second Wind automáticamente cuando sea apropiado');
+      }
+      
+      if (activeAbilities.length > 0) {
+        systemPrompt += `\n\nHABILIDADES ACTIVADAS POR EL JUGADOR:\n${activeAbilities.join('\n')}\n\nINSTRUCCIONES PARA HABILIDADES ACTIVADAS:\n- Evalúa el contexto de cada habilidad activada antes de usarla\n- Para Ataque Furtivo: Solo aplica si hay ventaja, aliado cerca, o condiciones apropiadas\n- Para Castigo Divino: Solo aplica en ataques cuerpo a cuerpo exitosos. Si el ataque falla, NO gastes el slot de conjuro. Solo gasta el slot cuando el ataque sea exitoso.\n- Para Ki: Usa puntos de ki cuando sea tácticamente beneficioso\n- Para Furia: Activa cuando el combate sea intenso o apropiado\n- Para Inspiración Bárdica: Usa cuando aliados necesiten ayuda o motivación\n- Para Second Wind: Usa cuando el personaje esté herido y sea seguro\n- SIEMPRE explica por qué usas o no usas una habilidad activada`;
+      }
+    }
+
+    // Hacer la llamada a OpenAI a través del proceso main
+    const result = await window.electronAPI.askOpenAI({
+      message,
+      gameState: fullGameState,
+      campaignId,
+      gameOptions: {
+        ...gameOptions,
+        systemPrompt
+      }
+    });
+
+    if (result.error) {
+      return result.message;
+    }
+
+    return result.message;
 
   } catch (error) {
     console.error('Error al comunicarse con el DM:', error)
@@ -590,17 +601,9 @@ Mientras tanto, puedes:
 
 export const sendMessageToAssistant = async (message, gameState, campaignId = null, gameOptions = {}) => {
   try {
-    // Obtener la API key del usuario
-    const apiKey = await getApiKey();
-    if (!apiKey) {
-      return `❌ Error: No se ha configurado la API key de OpenAI.
-
-Para usar el asistente de IA, necesitas:
-1. Ir a las opciones del juego (⚙️)
-2. Configurar tu API key de OpenAI
-3. Obtener una key gratuita en https://platform.openai.com/api-keys
-
-Sin la API key, el asistente no puede funcionar.`;
+    // Verificar si estamos en Electron
+    if (!window.electronAPI) {
+      return `❌ Error: Esta funcionalidad solo está disponible en la aplicación de escritorio.\n\nPor favor, ejecuta la aplicación desde Electron para usar el asistente de IA.`;
     }
 
     // Obtener estado completo de la campaña si hay una activa
@@ -621,35 +624,22 @@ Sin la API key, el asistente no puede funcionar.`;
     const systemPrompt = ASSISTANT_PROMPT + promptModifiers + 
       (fullGameState ? `\nEstado actual del juego:\n${JSON.stringify(fullGameState, null, 2)}` : '')
 
-    const response = await fetch(OPENAI_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content: systemPrompt
-          },
-          {
-            role: 'user',
-            content: message
-          }
-        ],
-        max_tokens: 800,
-        temperature: 0.7
-      })
-    })
+    // Hacer la llamada a OpenAI a través del proceso main
+    const result = await window.electronAPI.askOpenAI({
+      message,
+      gameState: fullGameState,
+      campaignId,
+      gameOptions: {
+        ...gameOptions,
+        systemPrompt
+      }
+    });
 
-    if (!response.ok) {
-      throw new Error(`Error de API: ${response.status}`)
+    if (result.error) {
+      return result.message;
     }
 
-    const data = await response.json()
-    return data.choices[0].message.content
+    return result.message;
 
   } catch (error) {
     console.error('Error al comunicarse con el asistente:', error)
@@ -690,35 +680,33 @@ export const rollDice = (diceNotation) => {
   return total
 }
 
-// Función para validar API key
+// Función para validar API key (solo Electron)
 export const validateAPIKey = async () => {
   try {
+    if (!window.electronAPI) {
+      return false;
+    }
+    
     const apiKey = await getApiKey();
     if (!apiKey) {
       return false;
     }
 
-    const response = await fetch(OPENAI_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4',
-        messages: [{ role: 'user', content: 'test' }],
-        max_tokens: 5
-      })
-    })
+    // Validar a través del proceso main
+    const result = await window.electronAPI.askOpenAI({
+      message: 'test',
+      gameState: {},
+      campaignId: null,
+      gameOptions: {}
+    });
     
-    return response.ok
+    return !result.error;
   } catch (error) {
-    return false
+    return false;
   }
 }
 
 // Funciones para aplicaciones de escritorio
-// Estas funciones se manejan directamente desde el componente principal
 export const updateWorldState = async (campaignId, worldState) => {
   console.log('Actualización de estado del mundo:', { campaignId, worldState });
   return true;

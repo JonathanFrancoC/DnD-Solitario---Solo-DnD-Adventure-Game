@@ -25,6 +25,7 @@ function App() {
   const [savedCharacters, setSavedCharacters] = useState([])
   const [showNewGameMenu, setShowNewGameMenu] = useState(false)
   const [submenuSource, setSubmenuSource] = useState('') // 'newGame' o 'createCharacter'
+  const [showStartGameOption, setShowStartGameOption] = useState(false)
   const [creationMode, setCreationMode] = useState('guided') // 'guided', 'custom', 'random'
   const [isPlaying, setIsPlaying] = useState(false)
   const [gameState, setGameState] = useState(null)
@@ -620,6 +621,7 @@ function App() {
     setSubmenuSource('')
     setIsCreatingCharacter(false)
     setShowCampaignManager(false)
+    setShowStartGameOption(false)
   }
 
   const handleUpdateGameState = (newGameState) => {
@@ -1348,6 +1350,141 @@ function App() {
   }
 
 
+  // Si estamos mostrando la opción de empezar partida después de crear un personaje
+  if (showStartGameOption && characterData) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px'
+      }}>
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.95)',
+          borderRadius: '20px',
+          padding: '40px',
+          textAlign: 'center',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+          maxWidth: '600px',
+          width: '100%'
+        }}>
+          <h1 style={{
+            color: '#2c3e50',
+            fontSize: '2.5em',
+            marginBottom: '20px',
+            fontWeight: 'bold'
+          }}>
+            🎯 Personaje Creado
+          </h1>
+          
+          <div style={{
+            background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+            borderRadius: '15px',
+            padding: '20px',
+            marginBottom: '30px',
+            border: '2px solid #dee2e6'
+          }}>
+            <h2 style={{
+              color: '#495057',
+              fontSize: '1.5em',
+              marginBottom: '10px'
+            }}>
+              {characterData.name}
+            </h2>
+            <p style={{
+              color: '#6c757d',
+              fontSize: '1.1em',
+              marginBottom: '5px'
+            }}>
+              Nivel {characterData.level || 1} {characterData.race} {characterData.class}
+            </p>
+            <p style={{
+              color: '#6c757d',
+              fontSize: '1em'
+            }}>
+              {characterData.background}
+            </p>
+          </div>
+          
+          <div style={{
+            display: 'flex',
+            gap: '20px',
+            justifyContent: 'center',
+            flexWrap: 'wrap'
+          }}>
+            <button
+              onClick={() => {
+                setShowStartGameOption(false)
+                setIsPlaying(true)
+                // Inicializar el estado del juego con el personaje creado
+                const initialGameState = {
+                  character: characterData,
+                  campaignId: currentCampaignId,
+                  sessionStart: new Date().toISOString(),
+                  messages: []
+                }
+                setGameState(initialGameState)
+              }}
+              style={{
+                background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
+                color: 'white',
+                border: 'none',
+                padding: '15px 30px',
+                borderRadius: '10px',
+                fontSize: '1.2em',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                boxShadow: '0 4px 15px rgba(40, 167, 69, 0.3)',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseOver={(e) => {
+                e.target.style.transform = 'translateY(-2px)'
+                e.target.style.boxShadow = '0 6px 20px rgba(40, 167, 69, 0.4)'
+              }}
+              onMouseOut={(e) => {
+                e.target.style.transform = 'translateY(0)'
+                e.target.style.boxShadow = '0 4px 15px rgba(40, 167, 69, 0.3)'
+              }}
+            >
+              🎮 Empezar Partida
+            </button>
+            
+            <button
+              onClick={() => {
+                setShowStartGameOption(false)
+                setSubmenuSource('')
+              }}
+              style={{
+                background: 'linear-gradient(135deg, #6c757d 0%, #495057 100%)',
+                color: 'white',
+                border: 'none',
+                padding: '15px 30px',
+                borderRadius: '10px',
+                fontSize: '1.2em',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                boxShadow: '0 4px 15px rgba(108, 117, 125, 0.3)',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseOver={(e) => {
+                e.target.style.transform = 'translateY(-2px)'
+                e.target.style.boxShadow = '0 6px 20px rgba(108, 117, 125, 0.4)'
+              }}
+              onMouseOut={(e) => {
+                e.target.style.transform = 'translateY(0)'
+                e.target.style.boxShadow = '0 4px 15px rgba(108, 117, 125, 0.3)'
+              }}
+            >
+              🏠 Volver al Menú
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   // Si estamos creando un personaje con el componente paso a paso
   if (isCreatingCharacter) {
     console.log('Intentando renderizar CharacterCreation...')
@@ -1363,6 +1500,15 @@ function App() {
             setIsCreatingCharacter(false)
             // Guardar el personaje en la lista de personajes
             setSavedCharacters(prev => [...prev, completeCharacter])
+            
+            // Determinar el flujo de navegación basado en el origen
+            if (submenuSource === 'newGame') {
+              // Si viene de "Nueva Partida", mostrar opción de empezar partida
+              setShowStartGameOption(true)
+            } else {
+              // Si viene de "Crear Personaje", regresar al menú principal
+              setSubmenuSource('')
+            }
           }}
           characterData={characterData}
           setCharacterData={setCharacterData}

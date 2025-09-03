@@ -8,6 +8,7 @@ const store = new Store({
   name: 'dnd-solitario-config',
   defaults: {
     apiKey: '',
+    developerMode: false,
     settings: {
       tone: 'medium',
       exploration: 'mixed',
@@ -382,6 +383,93 @@ ipcMain.handle('get-api-key', () => {
 ipcMain.handle('save-api-key', (event, apiKey) => {
   store.set('apiKey', apiKey)
   return true
+})
+
+// Handlers para modo desarrollador
+ipcMain.handle('get-developer-mode', () => {
+  return store.get('developerMode', false)
+})
+
+ipcMain.handle('save-developer-mode', (event, developerMode) => {
+  store.set('developerMode', developerMode)
+  console.log('🔧 Modo desarrollador:', developerMode ? 'ACTIVADO' : 'DESACTIVADO')
+  return true
+})
+
+// Handler para llamadas a OpenAI
+ipcMain.handle('ask-openai', async (event, { message, gameState, campaignId, gameOptions }) => {
+  try {
+    const apiKey = store.get('apiKey')
+    if (!apiKey) {
+      return {
+        error: true,
+        message: '❌ Error: No se ha configurado la API key de OpenAI.\n\nPara usar la IA del juego, necesitas:\n1. Ir a las opciones del juego (⚙️)\n2. Configurar tu API key de OpenAI\n3. Obtener una key gratuita en https://platform.openai.com/api-keys\n\nSin la API key, la IA no puede funcionar.'
+      }
+    }
+
+    // Importar OpenAI dinámicamente
+    const { default: OpenAI } = await import('openai')
+    const client = new OpenAI({ apiKey })
+
+    // Obtener modo desarrollador
+    const developerMode = store.get('developerMode', false)
+
+    // Construir el prompt del sistema
+    let systemPrompt = `Eres un Dungeon Master (DM) experto en D&D 5e. Tu objetivo es crear una experiencia de juego inmersiva y narrativa para un jugador solitario.
+
+REGLAS IMPORTANTES:
+- Siempre responde en español
+- Mantén un tono narrativo y descriptivo
+- Haz tiradas de dados cuando sea necesario (d20, d6, etc.)
+- Sé consistente con las reglas de D&D 5e
+- Adapta la dificultad al nivel del personaje
+- Proporciona opciones claras al jugador
+- Mantén la coherencia del mundo y la historia
+
+ESTADO DEL JUEGO:
+${JSON.stringify(gameState, null, 2)}
+
+OPCIONES DE JUEGO:
+${JSON.stringify(gameOptions, null, 2)}`
+
+    // Agregar prompt especial para modo desarrollador
+    if (developerMode) {
+      systemPrompt += `\n\n🔧 MODO DESARROLLADOR ACTIVADO 🔧
+      
+ESTÁS EN MODO DE PRUEBAS - EL PROGRAMADOR TE VA A HABLAR
+
+INSTRUCCIONES ESPECIALES PARA MODO DESARROLLADOR:
+- El usuario que te está hablando es el programador desarrollando el juego
+- Puede hacer preguntas directas sobre mecánicas, bugs, o funcionalidades
+- Responde de manera técnica pero clara sobre el funcionamiento del sistema
+- Si detectas problemas en las mecánicas, explícalos detalladamente
+- Proporciona sugerencias de mejora cuando sea apropiado
+- Mantén el tono profesional pero accesible`
+    }
+
+    // Hacer la llamada a OpenAI
+    const response = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: message }
+      ],
+      max_tokens: 2000,
+      temperature: 0.8
+    })
+
+    return {
+      error: false,
+      message: response.choices[0].message.content
+    }
+
+  } catch (error) {
+    console.error('Error en llamada a OpenAI:', error)
+    return {
+      error: true,
+      message: `❌ Error al comunicarse con OpenAI: ${error.message}\n\nVerifica tu conexión a internet y que tu API key sea válida.`
+    }
+  }
 })
 
 let mainWindow

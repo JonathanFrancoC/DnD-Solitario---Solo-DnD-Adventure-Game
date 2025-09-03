@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react'
 import { Send, Save, FolderOpen, Settings, Home, MessageCircle, X, ChevronLeft, ChevronRight, User, Heart, Shield, Sword, Zap, Users as UsersIcon } from 'lucide-react'
 import { sendMessageToDM, sendMessageToAssistant } from '../utils/aiService'
 import gameSaveService from '../utils/gameSaveService'
+import ActionBar from './ActionBar.jsx'
+import { createInitialTurnState, generateAISuggestions, exportStateForAI } from '../utils/turnManager.js'
 
 const GameArea = ({ gameState, updateGameState, onBackToMenu, onShowCharacterSheet, onViewCharacterStats, campaignId = null, gameOptions = {} }) => {
   const [messages, setMessages] = useState(gameState?.messages || [])
@@ -17,10 +19,11 @@ const GameArea = ({ gameState, updateGameState, onBackToMenu, onShowCharacterShe
     longRest: { enabled: false, used: false },
     levelUp: { enabled: false, used: false }
   })
+  const character = gameState?.character
+  const [turnState, setTurnState] = useState(() => createInitialTurnState(character))
+  const [aiSuggestions, setAiSuggestions] = useState([])
   const messagesEndRef = useRef(null)
   const sideChatEndRef = useRef(null)
-
-  const character = gameState?.character
 
   // Función para calcular modificadores de características
   const getAbilityModifier = (score) => {
@@ -107,8 +110,8 @@ const GameArea = ({ gameState, updateGameState, onBackToMenu, onShowCharacterShe
     const userMessage = {
       role: 'user',
       content: inputMessage,
-      timestamp: new Date().toISOString()
-    }
+        timestamp: new Date().toISOString()
+      }
 
     setMessages(prev => [...prev, userMessage])
     setInputMessage('')
@@ -123,19 +126,19 @@ const GameArea = ({ gameState, updateGameState, onBackToMenu, onShowCharacterShe
         timestamp: new Date().toISOString()
       }
 
-             setMessages(prev => [...prev, dmMessage])
-       
-       // Detectar si la IA aprueba alguna acción
-       detectActionApproval(response)
-       
-       // Actualizar el estado del juego con la nueva información
-       const updatedGameState = {
-         ...gameState,
-         messages: [...messages, userMessage, dmMessage],
-         lastUpdate: new Date().toISOString()
-       }
-       
-       updateGameState(updatedGameState)
+      setMessages(prev => [...prev, dmMessage])
+
+      // Detectar si la IA aprueba alguna acción
+      detectActionApproval(response)
+      
+      // Actualizar el estado del juego con la nueva información
+      const updatedGameState = {
+        ...gameState,
+        messages: [...messages, userMessage, dmMessage],
+        lastUpdate: new Date().toISOString()
+      }
+
+      updateGameState(updatedGameState)
     } catch (error) {
       console.error('Error al enviar mensaje:', error)
       const errorMessage = {
@@ -146,6 +149,102 @@ const GameArea = ({ gameState, updateGameState, onBackToMenu, onShowCharacterShe
       setMessages(prev => [...prev, errorMessage])
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  // Función para manejar acciones del ActionBar
+  const handleActionBarSend = async (actionData) => {
+    if (isLoading) return
+
+    const { intent, selectedActions, state } = actionData
+    
+    // Crear mensaje combinando intención y acciones
+    const actionDescription = selectedActions.length > 0 
+      ? `\n\nAcciones seleccionadas:\n${selectedActions.map(a => `- ${a.label}`).join('\n')}`
+      : ''
+    
+    const fullMessage = intent + actionDescription
+
+    const userMessage = {
+      role: 'user',
+      content: fullMessage,
+      timestamp: new Date().toISOString(),
+      actionData: actionData // Incluir datos estructurados para la IA
+    }
+
+    setMessages(prev => [...prev, userMessage])
+    setIsLoading(true)
+
+    try {
+      // Enviar a la IA con datos estructurados
+      const response = await sendMessageToDM(fullMessage, gameState, campaignId, {
+        ...gameOptions,
+        turnState: state,
+        selectedActions: selectedActions
+      })
+      
+      const assistantMessage = {
+        role: 'assistant',
+        content: response,
+        timestamp: new Date().toISOString()
+      }
+
+      setMessages(prev => [...prev, assistantMessage])
+      
+      // Detectar aprobación de acciones especiales
+      detectActionApproval(response)
+
+      // Actualizar estado del juego
+      const updatedGameState = {
+        ...gameState,
+        messages: [...messages, userMessage, assistantMessage],
+        lastUpdated: new Date().toISOString()
+      }
+      
+      updateGameState(updatedGameState)
+
+      // Generar nuevas sugerencias de IA
+      const newSuggestions = generateAISuggestions(character, turnState, {
+        inCombat: gameState?.inCombat || false,
+        exploring: gameState?.exploring || false,
+        lastMessage: response
+      })
+      setAiSuggestions(newSuggestions)
+      
+      // Auto-save
+      if (campaignId) {
+        try {
+          await gameSaveService.saveFullGameState(updatedGameState, character)
+    } catch (error) {
+          console.error('Error guardando estado del juego:', error)
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error enviando acción:', error)
+      const errorMessage = {
+        role: 'assistant',
+        content: 'Lo siento, hubo un error procesando tu acción. Por favor, intenta de nuevo.',
+        timestamp: new Date().toISOString()
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Función para actualizar el estado del turno y personaje
+  const handleTurnStateChange = (newCharacter) => {
+    // Si es un personaje actualizado, actualizar el estado del juego
+    if (newCharacter && newCharacter.mechanics) {
+      const updatedGameState = {
+        ...gameState,
+        character: newCharacter
+      }
+      updateGameState(updatedGameState)
+    } else {
+      // Si es solo el estado del turno
+      setTurnState(newCharacter)
     }
   }
 
@@ -482,7 +581,7 @@ const GameArea = ({ gameState, updateGameState, onBackToMenu, onShowCharacterShe
             <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#95a5a6' }}>
               {character?.race || 'Sin raza'} • {character?.alignment || 'Sin alineamiento'}
             </p>
-          </div>
+            </div>
 
           {/* Vida y puntos temporales */}
           <div style={{
@@ -504,7 +603,7 @@ const GameArea = ({ gameState, updateGameState, onBackToMenu, onShowCharacterShe
                 <span style={{ fontSize: '14px', fontWeight: 'bold' }}>
                   {character?.currentHP || 0} / {character?.maxHP || 0}
                 </span>
-              </div>
+          </div>
               <div style={{
                 width: '100%',
                 height: '20px',
@@ -519,9 +618,9 @@ const GameArea = ({ gameState, updateGameState, onBackToMenu, onShowCharacterShe
                   background: `linear-gradient(90deg, ${getHealthColor(character?.currentHP || 0, character?.maxHP || 1)} 0%, ${getHealthColor(character?.currentHP || 0, character?.maxHP || 1)}80 100%)`,
                   transition: 'width 0.3s ease'
                 }} />
-              </div>
-            </div>
-
+          </div>
+        </div>
+        
             {/* Puntos de vida temporales */}
             {character?.tempHP > 0 && (
               <div>
@@ -529,7 +628,7 @@ const GameArea = ({ gameState, updateGameState, onBackToMenu, onShowCharacterShe
                   <span style={{ fontSize: '14px' }}>Vida Temporal</span>
                   <span style={{ fontSize: '14px', fontWeight: 'bold', color: getTempHealthColor() }}>
                     {character.tempHP}
-                  </span>
+            </span>
                 </div>
                 <div style={{
                   width: '100%',
@@ -802,7 +901,7 @@ const GameArea = ({ gameState, updateGameState, onBackToMenu, onShowCharacterShe
                            fontSize: '12px'
                          }}>
                            {slot.total - slot.used} / {slot.total}
-                         </span>
+            </span>
                        </div>
                        
                        {/* Cuadrados estilo BG3 */}
@@ -854,8 +953,8 @@ const GameArea = ({ gameState, updateGameState, onBackToMenu, onShowCharacterShe
                 {Object.keys(character.spellSlots).filter(level => character.spellSlots[level].total > 0).length === 0 && (
                   <div style={{ fontSize: '14px', color: '#95a5a6', fontStyle: 'italic' }}>
                     Sin espacios de conjuro disponibles
-                  </div>
-                )}
+          </div>
+        )}
               </div>
             </div>
           )}
@@ -1122,9 +1221,9 @@ const GameArea = ({ gameState, updateGameState, onBackToMenu, onShowCharacterShe
                ⭐ Subir de Nivel
              </button>
            </div>
-         </div>
+      </div>
 
-        {/* Área de mensajes */}
+      {/* Área de mensajes */}
         <div style={{
           flex: 1,
           padding: '20px',
@@ -1133,7 +1232,7 @@ const GameArea = ({ gameState, updateGameState, onBackToMenu, onShowCharacterShe
           flexDirection: 'column',
           gap: '15px'
         }}>
-          {messages.length === 0 ? (
+        {messages.length === 0 ? (
             <div style={{
               textAlign: 'center',
               padding: '40px',
@@ -1145,8 +1244,8 @@ const GameArea = ({ gameState, updateGameState, onBackToMenu, onShowCharacterShe
               <p style={{ fontSize: '14px', marginTop: '20px' }}>
                 Ejemplos: "Entro a la taberna", "Hablo con el tabernero", "Exploro la ciudad"
               </p>
-            </div>
-          ) : (
+          </div>
+        ) : (
             messages.map((message, index) => (
               <div
                 key={index}
@@ -1171,7 +1270,7 @@ const GameArea = ({ gameState, updateGameState, onBackToMenu, onShowCharacterShe
                 }}>
                   <div style={{ fontSize: '14px', lineHeight: '1.5' }}>
                     {message.content}
-                  </div>
+                </div>
                   <div style={{
                     fontSize: '11px',
                     color: 'rgba(255,255,255,0.7)',
@@ -1182,12 +1281,12 @@ const GameArea = ({ gameState, updateGameState, onBackToMenu, onShowCharacterShe
                       hour: '2-digit',
                       minute: '2-digit'
                     })}
-                  </div>
                 </div>
               </div>
-            ))
-          )}
-          {isLoading && (
+            </div>
+          ))
+        )}
+        {isLoading && (
             <div style={{
               display: 'flex',
               justifyContent: 'flex-start',
@@ -1210,12 +1309,12 @@ const GameArea = ({ gameState, updateGameState, onBackToMenu, onShowCharacterShe
                     animation: 'spin 1s linear infinite'
                   }} />
                   El DM está pensando...
-                </div>
               </div>
             </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
 
         {/* Input del chat principal */}
         <div style={{
@@ -1269,9 +1368,9 @@ const GameArea = ({ gameState, updateGameState, onBackToMenu, onShowCharacterShe
               <Send size={16} />
               Enviar
             </button>
-          </div>
-        </div>
-      </div>
+              </div>
+              </div>
+            </div>
 
       {/* Chat lateral derecho */}
       <div style={{
@@ -1318,7 +1417,7 @@ const GameArea = ({ gameState, updateGameState, onBackToMenu, onShowCharacterShe
           >
             <X size={14} />
           </button>
-        </div>
+          </div>
 
         {/* Mensajes del chat lateral */}
         <div style={{
@@ -1427,7 +1526,7 @@ const GameArea = ({ gameState, updateGameState, onBackToMenu, onShowCharacterShe
                 fontFamily: 'inherit'
               }}
             />
-            <button
+          <button
               onClick={handleSideChatMessage}
               disabled={isSideChatLoading || !sideChatInput.trim()}
               style={{
@@ -1446,9 +1545,9 @@ const GameArea = ({ gameState, updateGameState, onBackToMenu, onShowCharacterShe
               }}
             >
               <Send size={12} />
-            </button>
-          </div>
+          </button>
         </div>
+      </div>
       </div>
 
       {/* Botón para abrir el chat lateral */}
@@ -1484,6 +1583,15 @@ const GameArea = ({ gameState, updateGameState, onBackToMenu, onShowCharacterShe
       >
         <MessageCircle size={20} />
       </button>
+
+      {/* ActionBar - Sistema de interacción avanzado */}
+      <ActionBar
+        character={character}
+        turnState={turnState}
+        onSend={handleActionBarSend}
+        suggestions={aiSuggestions}
+        onTurnStateChange={handleTurnStateChange}
+      />
 
       {/* Estilos CSS para animaciones */}
       <style jsx>{`

@@ -49,6 +49,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveConfig: (config) => ipcRenderer.invoke('save-config', config),
   getApiKey: () => ipcRenderer.invoke('get-api-key'),
   saveApiKey: (apiKey) => ipcRenderer.invoke('save-api-key', apiKey),
+  getDeveloperMode: () => ipcRenderer.invoke('get-developer-mode'),
+  saveDeveloperMode: (developerMode) => ipcRenderer.invoke('save-developer-mode', developerMode),
+  askOpenAI: (data) => ipcRenderer.invoke('ask-openai', data),
   
   // Eventos
   onNewGame: (callback) => ipcRenderer.on('new-game', callback),

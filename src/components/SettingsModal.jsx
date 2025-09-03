@@ -10,6 +10,7 @@ const SettingsModal = ({ isOpen, onClose, onSave }) => {
     logisticsComplexity: 'detailed'
   })
   const [apiKey, setApiKey] = useState('')
+  const [developerMode, setDeveloperMode] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
@@ -22,8 +23,10 @@ const SettingsModal = ({ isOpen, onClose, onSave }) => {
       if (window.electronAPI) {
         const config = await window.electronAPI.getConfig()
         const key = await window.electronAPI.getApiKey()
+        const devMode = await window.electronAPI.getDeveloperMode()
         setSettings(config || settings)
         setApiKey(key || '')
+        setDeveloperMode(devMode || false)
       }
     } catch (error) {
       console.error('Error al cargar configuración:', error)
@@ -35,8 +38,9 @@ const SettingsModal = ({ isOpen, onClose, onSave }) => {
       if (window.electronAPI) {
         await window.electronAPI.saveConfig(settings)
         await window.electronAPI.saveApiKey(apiKey)
+        await window.electronAPI.saveDeveloperMode(developerMode)
       }
-      onSave({ settings, apiKey })
+      onSave({ settings, apiKey, developerMode })
       onClose()
     } catch (error) {
       console.error('Error al guardar configuración:', error)
@@ -85,6 +89,40 @@ const SettingsModal = ({ isOpen, onClose, onSave }) => {
                 platform.openai.com
               </a>
             </p>
+          </div>
+
+          {/* Modo Desarrollador */}
+          <div className="border-t border-dnd-brown pt-6">
+            <h3 className="text-lg font-bold text-dnd-gold mb-4 flex items-center gap-2">
+              <span className="text-red-500">🔧</span>
+              Modo Desarrollador
+            </h3>
+            <div className="bg-dnd-brown bg-opacity-20 p-4 rounded-lg border border-dnd-brown">
+              <label className="flex items-center gap-3 text-dnd-gold font-semibold mb-3">
+                <input
+                  type="checkbox"
+                  checked={developerMode}
+                  onChange={(e) => setDeveloperMode(e.target.checked)}
+                  className="w-4 h-4 text-dnd-gold bg-dnd-dark border-dnd-brown rounded focus:ring-dnd-gold"
+                />
+                Activar modo desarrollador
+              </label>
+              <p className="text-sm text-dnd-light mb-3">
+                <strong>⚠️ ADVERTENCIA:</strong> Este modo está destinado únicamente para pruebas de desarrollo.
+              </p>
+              <div className="text-sm text-dnd-light space-y-2">
+                <p><strong>Cuando está activado:</strong></p>
+                <ul className="list-disc list-inside ml-4 space-y-1">
+                  <li>La IA recibirá un prompt especial indicando que está en modo de pruebas</li>
+                  <li>El programador puede hacer preguntas directas sobre mecánicas</li>
+                  <li>Se activan logs adicionales para debugging</li>
+                  <li>Algunas restricciones de seguridad se relajan temporalmente</li>
+                </ul>
+                <p className="text-yellow-400 mt-3">
+                  <strong>💡 Uso:</strong> Solo activar cuando necesites probar nuevas funcionalidades o debuggear problemas.
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Tono de heridas/violencia */}

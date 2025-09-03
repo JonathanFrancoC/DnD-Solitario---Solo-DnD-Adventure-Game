@@ -6,6 +6,7 @@ const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
   const [apiKey, setApiKey] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
   const [apiKeyStatus, setApiKeyStatus] = useState('checking'); // 'checking', 'configured', 'not-configured'
+  const [developerMode, setDeveloperMode] = useState(false)
   const [options, setOptions] = useState({
     // Configuración de tono y contenido
     contentRating: currentOptions.contentRating || 'PG-13',
@@ -62,6 +63,7 @@ const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
   useEffect(() => {
     loadApiKey();
     checkApiKeyStatus();
+    loadDeveloperMode();
   }, []);
 
   const checkApiKeyStatus = async () => {
@@ -80,12 +82,21 @@ const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
         const key = await window.electronAPI.getApiKey();
         setApiKey(key || '');
       } else {
-        // Para versión web, intentar cargar desde localStorage
-        const savedKey = localStorage.getItem('openai_api_key');
-        setApiKey(savedKey || '');
+        throw new Error('Esta aplicación solo funciona en Electron');
       }
     } catch (error) {
       console.error('Error al cargar API key:', error);
+    }
+  };
+
+  const loadDeveloperMode = async () => {
+    try {
+      if (window.electronAPI) {
+        const devMode = await window.electronAPI.getDeveloperMode();
+        setDeveloperMode(devMode || false);
+      }
+    } catch (error) {
+      console.error('Error al cargar modo desarrollador:', error);
     }
   };
 
@@ -175,9 +186,9 @@ const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
       // Guardar la API key
       if (window.electronAPI) {
         await window.electronAPI.saveApiKey(apiKey);
+        await window.electronAPI.saveDeveloperMode(developerMode);
       } else {
-        // Para versión web, guardar en localStorage
-        localStorage.setItem('openai_api_key', apiKey);
+        throw new Error('Esta aplicación solo funciona en Electron');
       }
       
       // Verificar el estado de la API key después de guardar
@@ -429,6 +440,72 @@ const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
                 ⚠️ Formato de API Key inválido (debe empezar con "sk-")
               </div>
             )}
+          </div>
+
+          {/* Modo Desarrollador */}
+          <div style={{ 
+            marginTop: '24px',
+            padding: '16px',
+            border: '2px solid #e74c3c',
+            borderRadius: '8px',
+            backgroundColor: 'rgba(231, 76, 60, 0.1)'
+          }}>
+            <h3 style={{ color: '#e74c3c', marginBottom: '16px', fontSize: '18px' }}>
+              🔧 Modo Desarrollador
+            </h3>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '12px',
+                color: '#ecf0f1', 
+                marginBottom: '12px',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}>
+                <input
+                  type="checkbox"
+                  checked={developerMode}
+                  onChange={(e) => setDeveloperMode(e.target.checked)}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    accentColor: '#e74c3c'
+                  }}
+                />
+                Activar modo desarrollador
+              </label>
+              <div style={{ 
+                fontSize: '12px', 
+                color: '#bdc3c7', 
+                marginBottom: '12px',
+                padding: '8px',
+                backgroundColor: 'rgba(231, 76, 60, 0.2)',
+                borderRadius: '4px'
+              }}>
+                <strong>⚠️ ADVERTENCIA:</strong> Este modo está destinado únicamente para pruebas de desarrollo.
+              </div>
+              <div style={{ 
+                fontSize: '11px', 
+                color: '#bdc3c7', 
+                lineHeight: '1.4'
+              }}>
+                <p><strong>Cuando está activado:</strong></p>
+                <ul style={{ margin: '8px 0', paddingLeft: '16px' }}>
+                  <li>La IA recibirá un prompt especial indicando que está en modo de pruebas</li>
+                  <li>El programador puede hacer preguntas directas sobre mecánicas</li>
+                  <li>Se activan logs adicionales para debugging</li>
+                  <li>Algunas restricciones de seguridad se relajan temporalmente</li>
+                </ul>
+                <p style={{ 
+                  color: '#f39c12', 
+                  marginTop: '8px',
+                  fontWeight: 'bold'
+                }}>
+                  <strong>💡 Uso:</strong> Solo activar cuando necesites probar nuevas funcionalidades o debuggear problemas.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 

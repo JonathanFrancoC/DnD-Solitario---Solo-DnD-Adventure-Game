@@ -16,6 +16,7 @@ import {
   getPreparedSpellsCount
 } from '../data/gameData.js'
 import { classEquipment } from '../data/classEquipment.js'
+import { getEquipmentRecommendations, validateEquipment, equipmentBestPractices } from '../data/equipmentBestPractices.js'
 import { pointBuyCostFromBase, calculateEffectiveStats, calculateTotalCost, applyClassRecommendations } from '../utils/recommendedStats.js'
 import { generateRandomName } from '../utils/randomNames'
 import '../styles/CharacterCreation.css'
@@ -749,42 +750,11 @@ const CharacterCreation = ({
 
   // Funciones para recomendaciones de equipo basadas en clase
   const getRecommendedArmor = (className) => {
-    if (!className || !classEquipment[className]) return 'Sin armadura'
+    if (!className) return 'Sin armadura'
     
-    const equipment = classEquipment[className]
-    const startingEquipment = equipment.startingEquipment || {}
-    
-    // Buscar en equipment fijo
-    if (startingEquipment.fixed) {
-      const armorItem = startingEquipment.fixed.find(item => {
-        if (typeof item !== 'string') return false
-        const itemLower = item.toLowerCase()
-        return itemLower.includes('armadura') || 
-               itemLower.includes('cuero') ||
-               itemLower.includes('malla') ||
-               itemLower.includes('placas')
-      })
-      if (armorItem) return armorItem
-    }
-    
-    // Buscar en choices (tomar la primera opción de armadura)
-    if (startingEquipment.choices) {
-      for (const choice of startingEquipment.choices) {
-        if (choice.options) {
-          const armorOption = choice.options.find(option => {
-            if (typeof option !== 'string') return false
-            const optionLower = option.toLowerCase()
-            return optionLower.includes('armadura') || 
-                   optionLower.includes('cuero') ||
-                   optionLower.includes('malla') ||
-                   optionLower.includes('placas')
-          })
-          if (armorOption) return armorOption
-        }
-      }
-    }
-    
-    return 'Sin armadura'
+    // Usar el nuevo sistema de recomendaciones
+    const recommendations = getEquipmentRecommendations(className)
+    return recommendations.class?.armor || 'Sin armadura'
   }
 
   const getRecommendedShield = (className) => {
@@ -819,110 +789,41 @@ const CharacterCreation = ({
   }
 
   const getRecommendedWeapon = (className, type) => {
-    if (!className || !classEquipment[className]) return type === 'primary' ? 'Daga (1d4)' : 'Sin arma secundaria'
+    if (!className) return type === 'primary' ? 'Daga (1d4)' : 'Sin arma secundaria'
     
-    const equipment = classEquipment[className]
-    const startingEquipment = equipment.startingEquipment || {}
-    const weapons = []
+    // Usar el nuevo sistema de recomendaciones
+    const recommendations = getEquipmentRecommendations(className)
     
-    // Buscar en equipment fijo
-    if (startingEquipment.fixed) {
-      const fixedWeapons = startingEquipment.fixed.filter(item => {
-        if (typeof item !== 'string') return false
-        const itemLower = item.toLowerCase()
-        return itemLower.includes('espada') ||
-               itemLower.includes('hacha') ||
-               itemLower.includes('maza') ||
-               itemLower.includes('bastón') ||
-               itemLower.includes('arco') ||
-               itemLower.includes('daga') ||
-               itemLower.includes('jabalina') ||
-               itemLower.includes('vara')
-      })
-      weapons.push(...fixedWeapons)
+    if (type === 'primary') {
+      return recommendations.class?.primaryWeapon || 'Daga (1d4)'
+    } else {
+      return recommendations.class?.secondaryWeapon || 'Sin arma secundaria'
     }
-    
-    // Buscar en choices
-    if (startingEquipment.choices) {
-      for (const choice of startingEquipment.choices) {
-        if (choice.options) {
-          const choiceWeapons = choice.options.filter(option => {
-            if (typeof option !== 'string') return false
-            const optionLower = option.toLowerCase()
-            return optionLower.includes('espada') ||
-                   optionLower.includes('hacha') ||
-                   optionLower.includes('maza') ||
-                   optionLower.includes('bastón') ||
-                   optionLower.includes('arco') ||
-                   optionLower.includes('daga') ||
-                   optionLower.includes('jabalina') ||
-                   optionLower.includes('vara')
-          })
-          weapons.push(...choiceWeapons)
-        }
-      }
-    }
-    
-    if (type === 'primary' && weapons.length > 0) {
-      return weapons[0]
-    } else if (type === 'secondary' && weapons.length > 1) {
-      return weapons[1]
-    } else if (type === 'secondary') {
-      return 'Daga (1d4)'
-    }
-    
-    return type === 'primary' ? 'Daga (1d4)' : 'Sin arma secundaria'
   }
 
   const getAdditionalEquipment = (className) => {
-    if (!className || !classEquipment[className]) return 'Sin equipo adicional'
+    if (!className) return 'Sin equipo adicional'
     
-    const equipment = classEquipment[className]
-    const startingEquipment = equipment.startingEquipment || {}
-    const additionalItems = []
+    // Usar el nuevo sistema de recomendaciones
+    const recommendations = getEquipmentRecommendations(className)
+    return recommendations.class?.reasoning || 'Sin equipo adicional'
+  }
+
+  const getEquipmentAdvice = (className) => {
+    if (!className) return null
     
-    // Agregar equipment fijo (excluyendo armas y armaduras ya mostradas)
-    if (startingEquipment.fixed) {
-      const nonWeaponArmorItems = startingEquipment.fixed.filter(item => {
-        if (typeof item !== 'string') return false
-        const itemLower = item.toLowerCase()
-        return !itemLower.includes('espada') &&
-               !itemLower.includes('hacha') &&
-               !itemLower.includes('maza') &&
-               !itemLower.includes('bastón') &&
-               !itemLower.includes('arco') &&
-               !itemLower.includes('daga') &&
-               !itemLower.includes('jabalina') &&
-               !itemLower.includes('vara') &&
-               !itemLower.includes('armadura') &&
-               !itemLower.includes('cuero') &&
-               !itemLower.includes('malla') &&
-               !itemLower.includes('placas') &&
-               !itemLower.includes('escudo')
-      })
-      additionalItems.push(...nonWeaponArmorItems)
+    const recommendations = getEquipmentRecommendations(className)
+    const validation = validateEquipment(className, 
+      characterData.armor, 
+      characterData.weapon1, 
+      characterData.weapon2
+    )
+    
+    return {
+      recommendations: recommendations.class,
+      validation: validation,
+      tips: equipmentBestPractices.generalTips
     }
-    
-    // Agregar algunos items de choices (paquetes, etc.)
-    if (startingEquipment.choices) {
-      for (const choice of startingEquipment.choices) {
-        if (choice.options) {
-          const packageItems = choice.options.filter(option => {
-            if (typeof option !== 'string') return false
-            const optionLower = option.toLowerCase()
-            return optionLower.includes('paquete') ||
-                   optionLower.includes('bolsa') ||
-                   optionLower.includes('mochila')
-          })
-          if (packageItems.length > 0) {
-            additionalItems.push(packageItems[0]) // Tomar el primer paquete
-            break
-          }
-        }
-      }
-    }
-    
-    return additionalItems.length > 0 ? additionalItems.join(', ') : 'Sin equipo adicional'
   }
 
   const getClassSavingThrows = (className) => {
