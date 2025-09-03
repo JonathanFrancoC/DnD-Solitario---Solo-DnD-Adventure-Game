@@ -437,6 +437,48 @@ const CharacterCreation = ({
     return step + 1
   }
 
+
+
+  // Función para obtener el mensaje de error de validación
+  const getValidationError = (step, characterData) => {
+    switch (step) {
+      case 0:
+        if (!characterData.name || characterData.name.trim() === '') return 'Debes ingresar un nombre para tu personaje'
+        if (!characterData.class) return 'Debes seleccionar una clase'
+        if (!characterData.background) return 'Debes seleccionar un trasfondo'
+        if (!characterData.race) return 'Debes seleccionar una raza'
+        if (!characterData.gender) return 'Debes seleccionar un género'
+        if (!characterData.alignment) return 'Debes seleccionar un alineamiento'
+        return null
+      case 1:
+        return getValidationError(0, characterData) // Misma validación que el paso 0
+      case 2:
+        if (Object.values(baseStats).some(stat => stat < 8)) return 'Todas las estadísticas deben ser al menos 8'
+        if (availablePoints >= 25) return 'Debes gastar todos los puntos de compra disponibles'
+        return null
+      case 3:
+        const maxSkillChoices = getMaxSkillChoices(characterData.class)
+        const currentSkills = characterData.skills && Array.isArray(characterData.skills) ? characterData.skills : []
+        const backgroundSkillList = getBackgroundSkills(characterData.background) || []
+        const nonBackgroundSkills = currentSkills.filter(skill => !backgroundSkillList.includes(skill))
+        const selectedClassSkillsCount = nonBackgroundSkills.length
+        
+        if (selectedClassSkillsCount < maxSkillChoices) {
+          return `Debes seleccionar exactamente ${maxSkillChoices} habilidades de clase (actualmente tienes ${selectedClassSkillsCount})`
+        }
+        if (selectedClassSkillsCount > maxSkillChoices) {
+          return `Has seleccionado demasiadas habilidades de clase. Debes tener exactamente ${maxSkillChoices} (actualmente tienes ${selectedClassSkillsCount})`
+        }
+        
+        if (!characterData.personalityTrait || characterData.personalityTrait.trim() === '') return 'Debes completar el rasgo de personalidad'
+        if (!characterData.ideal || characterData.ideal.trim() === '') return 'Debes completar el ideal'
+        if (!characterData.bond || characterData.bond.trim() === '') return 'Debes completar el vínculo'
+        if (!characterData.flaw || characterData.flaw.trim() === '') return 'Debes completar el defecto'
+        return null
+      default:
+        return null
+    }
+  }  
   // Función para verificar si se puede avanzar
   const canAdvanceStep = (step, characterData) => {
     switch (step) {
@@ -460,9 +502,14 @@ const CharacterCreation = ({
         // Verificar que todas las estadísticas estén configuradas y que se hayan gastado puntos
         return Object.values(baseStats).every(stat => stat >= 8) && availablePoints < 25
       case 3:
-        // Verificar que se hayan seleccionado el máximo de habilidades de clase permitidas
+        // Verificar que se hayan seleccionado exactamente el número de habilidades de clase permitidas
         const maxSkillChoices = getMaxSkillChoices(characterData.class)
-        const selectedSkillsCount = characterData.skills && Array.isArray(characterData.skills) ? characterData.skills.length : 0
+        const currentSkills = characterData.skills && Array.isArray(characterData.skills) ? characterData.skills : []
+        const backgroundSkillList = getBackgroundSkills(characterData.background) || []
+        
+        // Contar solo las habilidades que NO son del trasfondo (habilidades de clase)
+        const nonBackgroundSkills = currentSkills.filter(skill => !backgroundSkillList.includes(skill))
+        const selectedClassSkillsCount = nonBackgroundSkills.length
         
         // Verificar que se haya completado la personalidad del personaje
         const hasPersonality = characterData.personalityTrait && 
@@ -474,7 +521,8 @@ const CharacterCreation = ({
                               characterData.flaw && 
                               characterData.flaw.trim() !== ''
         
-        return selectedSkillsCount >= maxSkillChoices && hasPersonality
+        // Debe tener exactamente el número de habilidades de clase requeridas
+        return selectedClassSkillsCount === maxSkillChoices && hasPersonality
       case 4:
         return true
       case 5:
@@ -1990,10 +2038,25 @@ const CharacterCreation = ({
                         const backgroundSkillList = getBackgroundSkills(characterData.background) || []
                         const nonBackgroundSkills = characterData.skills.filter(skill => !backgroundSkillList.includes(skill))
                         const isAtLimit = nonBackgroundSkills.length >= getMaxSkillChoices(characterData.class)
+                        const isExact = nonBackgroundSkills.length === getMaxSkillChoices(characterData.class)
+                        
+                        let statusColor = '#4CAF50' // Verde por defecto
+                        let statusText = ''
+                        
+                        if (isExact) {
+                          statusColor = '#4CAF50' // Verde - número exacto
+                          statusText = ' ✓ Completado'
+                        } else if (isAtLimit) {
+                          statusColor = '#d32f2f' // Rojo - demasiadas
+                          statusText = ' ✗ Demasiadas'
+                        } else {
+                          statusColor = '#FF9800' // Naranja - faltan
+                          statusText = ' ⚠ Faltan'
+                        }
                         
                         return (
-                          <span style={{ color: isAtLimit ? '#d32f2f' : '#4CAF50' }}>
-                            {' '}({nonBackgroundSkills.length}/{getMaxSkillChoices(characterData.class)} seleccionadas)
+                          <span style={{ color: statusColor }}>
+                            {' '}({nonBackgroundSkills.length}/{getMaxSkillChoices(characterData.class)} seleccionadas){statusText}
                           </span>
                         )
                       })()
@@ -4861,22 +4924,40 @@ const CharacterCreation = ({
             </button>
             
         {/* Botones de navegación */}
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* Mensaje de error de validación */}
+              {!canAdvanceStep(step, characterData) && (
+                <div style={{
+                  padding: '10px',
+                  backgroundColor: '#ffebee',
+                  border: '1px solid #f44336',
+                  borderRadius: '6px',
+                  color: '#d32f2f',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  textAlign: 'center'
+                }}>
+                  {getValidationError(step, characterData)}
+                </div>
+              )}
+              
+              <div style={{ display: 'flex', gap: '10px' }}>
                 <button
-            onClick={() => setStep(step - 1)}
-            disabled={step === 0}
-            className="nav-button"
-          >
-            Anterior
+                  onClick={() => setStep(step - 1)}
+                  disabled={step === 0}
+                  className="nav-button"
+                >
+                  Anterior
                 </button>
-          
+                
                 <button
-            onClick={() => setStep(step + 1)}
-                                disabled={!canAdvanceStep(step, characterData)}
-            className="nav-button"
-          >
-            Siguiente
+                  onClick={() => setStep(step + 1)}
+                  disabled={!canAdvanceStep(step, characterData)}
+                  className="nav-button"
+                >
+                  Siguiente
                 </button>
+              </div>
             </div>
 
         {/* Indicador de progreso */}

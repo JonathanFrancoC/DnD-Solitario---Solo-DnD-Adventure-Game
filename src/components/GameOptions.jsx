@@ -1,7 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { isApiKeyConfigured } from '../utils/aiService';
 
 const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
   const [selectedOption, setSelectedOption] = useState(null);
+  const [apiKey, setApiKey] = useState('');
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [apiKeyStatus, setApiKeyStatus] = useState('checking'); // 'checking', 'configured', 'not-configured'
   const [options, setOptions] = useState({
     // Configuración de tono y contenido
     contentRating: currentOptions.contentRating || 'PG-13',
@@ -54,6 +58,37 @@ const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
     customContent: currentOptions.customContent || 'none'
   });
 
+  // Cargar la API key al abrir el modal
+  useEffect(() => {
+    loadApiKey();
+    checkApiKeyStatus();
+  }, []);
+
+  const checkApiKeyStatus = async () => {
+    try {
+      const configured = await isApiKeyConfigured();
+      setApiKeyStatus(configured ? 'configured' : 'not-configured');
+    } catch (error) {
+      console.error('Error al verificar estado de API key:', error);
+      setApiKeyStatus('not-configured');
+    }
+  };
+
+  const loadApiKey = async () => {
+    try {
+      if (window.electronAPI) {
+        const key = await window.electronAPI.getApiKey();
+        setApiKey(key || '');
+      } else {
+        // Para versión web, intentar cargar desde localStorage
+        const savedKey = localStorage.getItem('openai_api_key');
+        setApiKey(savedKey || '');
+      }
+    } catch (error) {
+      console.error('Error al cargar API key:', error);
+    }
+  };
+
   const handleOptionChange = (category, value) => {
     setOptions(prev => ({
       ...prev,
@@ -77,58 +112,52 @@ const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
   const getOptionDescription = (category, value) => {
     const descriptions = {
       contentRating: {
-        'Family': 'Contenido completamente familiar. Sin violencia gráfica, lenguaje suave, temas apropiados para todas las edades. Ideal para jugar con niños o en entornos familiares.',
-        'PG-13': 'Contenido adolescente. Violencia moderada sin gore, temas maduros pero no explícitos. Apropiado para adolescentes y adultos jóvenes.',
-        'PG-16': 'Contenido maduro. Violencia más intensa, temas adultos, lenguaje más fuerte. Para jugadores experimentados.',
-        'PG-18': 'Contenido adulto. Violencia gráfica, temas explícitos, lenguaje fuerte. Solo para adultos.'
+        'Family': 'Contenido apropiado para toda la familia. Violencia mínima, sin descripciones gráficas, enfoque en aventura y descubrimiento.',
+        'PG-13': 'Contenido apropiado para adolescentes. Violencia moderada, evita gore innecesario, moral gris pero accesible.',
+        'PG-16': 'Contenido maduro. Violencia moderada, temas complejos y decisiones difíciles, moral ambigua.',
+        'PG-18': 'Contenido adulto. Violencia gráfica permitida, temas maduros y complejos, consecuencias severas.'
       },
       violenceLevel: {
-        'minimal': 'Combate sin descripciones gráficas. Enfoque en la acción sin detalles de heridas o sangre. Ideal para jugadores sensibles.',
-        'moderate': 'Combate realista pero sin excesos. Descripciones equilibradas que mantienen la tensión sin ser gráficas.',
-        'intense': 'Combate detallado y realista. Descripciones más vívidas de heridas y consecuencias del combate.',
-        'graphic': 'Combate muy detallado y visceral. Descripciones explícitas de heridas, sangre y consecuencias brutales.'
+        'minimal': 'Violencia mínima. Combate sin descripciones gráficas, enfoque en resolución pacífica, consecuencias no letales cuando sea posible.',
+        'moderate': 'Violencia moderada. Combate realista sin excesos, descripciones apropiadas para la edad, consecuencias reales pero no excesivas.',
+        'intense': 'Violencia intensa. Combate detallado y realista, descripciones vívidas de batalla, consecuencias severas y permanentes.',
+        'graphic': 'Violencia gráfica. Combate muy detallado y visceral, descripciones explícitas de daño, consecuencias extremas y traumáticas.'
       },
       worldStyle: {
-        'medieval': 'Era medieval tradicional. Sin pólvora, tecnología limitada, sociedad feudal. El clásico setting de fantasía.',
-        'renaissance': 'Renacimiento temprano. Pólvora básica, avances tecnológicos limitados, transición hacia la modernidad.',
-        'steampunk': 'Tecnología de vapor y engranajes. Máquinas complejas, estética victoriana con elementos fantásticos.',
-        'modern': 'Época moderna con magia. Tecnología actual mezclada con elementos mágicos y fantásticos.'
+        'medieval': 'Mundo medieval. Era medieval cruda sin pólvora o tecnología moderna, sociedad feudal y jerárquica, tecnología básica y artesanal.',
+        'renaissance': 'Mundo renacentista. Renacimiento temprano con pólvora básica, sociedad en transición, tecnología emergente.',
+        'steampunk': 'Mundo steampunk. Tecnología de vapor y engranajes, sociedad industrial temprana, magia y tecnología combinadas.',
+        'modern': 'Mundo moderno. Época moderna con magia, tecnología actual disponible, sociedad contemporánea.'
       },
       difficulty: {
-        'easy': 'Dificultad reducida. CD más bajas, enemigos más débiles, más oportunidades de éxito. Ideal para principiantes.',
-        'normal': 'Dificultad estándar. CD según las reglas del manual, enemigos balanceados. Experiencia clásica de D&D.',
-        'hard': 'Dificultad aumentada. CD más altas, enemigos más inteligentes y tácticos. Para jugadores experimentados.',
-        'brutal': 'Dificultad extrema. CD muy altas, enemigos tácticos y despiadados. Solo para veteranos.'
+        'easy': 'Dificultad fácil. CD más bajas (8-12 para tareas normales), enemigos más débiles, más oportunidades de recuperación.',
+        'normal': 'Dificultad normal. CD estándar según reglas (10-15 para tareas normales), enemigos con inteligencia estándar.',
+        'hard': 'Dificultad difícil. CD más altas (12-18 para tareas normales), enemigos más inteligentes, consecuencias más severas.',
+        'brutal': 'Dificultad brutal. CD muy altas (15-25 para tareas normales), enemigos extremadamente tácticos, muerte frecuente.'
       },
       combatStyle: {
-        'cinematic': 'Combate épico y dramático. Acciones espectaculares, descripciones cinematográficas, momentos heroicos.',
-        'tactical': 'Enfoque en estrategia y posicionamiento. Combate más cerebral, uso de terreno y recursos.',
-        'realistic': 'Combate realista con consecuencias. Heridas persistentes, fatiga, consecuencias reales de las acciones.',
-        'fast': 'Combate dinámico y fluido. Acciones rápidas, menos descripciones, ritmo acelerado.'
+        'cinematic': 'Combate cinemático. Acciones épicas y dramáticas, descripciones cinematográficas, énfasis en la narrativa sobre la táctica.',
+        'tactical': 'Combate táctico. Énfasis en posicionamiento y estrategia, uso inteligente del terreno, coordinación entre enemigos.',
+        'realistic': 'Combate realista. Consecuencias reales y peligrosas, daño permanente frecuente, enemigos que huyen cuando es inteligente.',
+        'fast': 'Combate rápido. Combates dinámicos y fluidos, menos descripciones más acción, resolución rápida de turnos.'
       },
       magicLevel: {
-        'low': 'Magia rara y misteriosa. Pocos magos, objetos mágicos escasos, magia vista como algo extraño.',
-        'standard': 'Magia común pero no omnipresente. Magos en las ciudades, objetos mágicos disponibles pero costosos.',
-        'high': 'Magia abundante. Muchos magos, objetos mágicos comunes, magia integrada en la sociedad.',
-        'epic': 'Magia épica y poderosa. Magia en todas partes, efectos espectaculares, poder casi ilimitado.'
+        'low': 'Magia baja. Magia rara y misteriosa, conjuros limitados y costosos, reacciones de miedo hacia magos.',
+        'standard': 'Magia estándar. Magia común pero respetada, conjuros según reglas estándar, aceptación social de magos.',
+        'high': 'Magia alta. Magia abundante y poderosa, conjuros mejorados y variados, sociedad adaptada a la magia.',
+        'epic': 'Magia épica. Magia legendaria y transformadora, conjuros de poder increíble, mundo moldeado por la magia.'
       },
       explorationStyle: {
-        'simple': 'Exploración básica. Descripciones simples, menos detalles ambientales, enfoque en la acción.',
-        'detailed': 'Exploración detallada. Descripciones ricas del entorno, descubrimientos frecuentes, inmersión ambiental.',
-        'immersive': 'Exploración inmersiva. Descripciones muy detalladas, efectos sensoriales, experiencia completa.',
-        'survival': 'Exploración de supervivencia. Gestión de recursos, peligros ambientales, desafíos de supervivencia.'
+        'simple': 'Exploración simple. Encuentros directos y claros, pistas obvias y fáciles de seguir, navegación sencilla.',
+        'detailed': 'Exploración detallada. Descripciones ricas del entorno, pistas sutiles pero descubribles, ambiente inmersivo.',
+        'immersive': 'Exploración inmersiva. Descripciones muy detalladas, pistas muy sutiles y complejas, exploración como actividad principal.',
+        'survival': 'Exploración de supervivencia. Énfasis en recursos y supervivencia, peligros ambientales frecuentes, gestión de suministros crítica.'
       },
       roleplayStyle: {
-        'minimal': 'Rol mínimo. Enfoque en combate y mecánicas, menos interacción social, personajes simples.',
-        'balanced': 'Rol equilibrado. Combate y social balanceados, personajes desarrollados, interacciones significativas.',
-        'heavy': 'Rol pesado. Enfoque en desarrollo de personajes, interacciones sociales complejas, narrativa profunda.',
-        'theatrical': 'Rol teatral. Interpretación dramática, voces de personajes, inmersión total en el rol.'
-      },
-      progressionStyle: {
-        'milestone': 'Progresión por hitos. Subida de nivel en momentos narrativos importantes, menos seguimiento de XP.',
-        'experience': 'Progresión por experiencia. XP tradicional, seguimiento detallado, recompensas por acciones.',
-        'fast': 'Progresión rápida. Subida de nivel más frecuente, más poder más rápido, campañas más cortas.',
-        'slow': 'Progresión lenta. Subida de nivel menos frecuente, más tiempo en cada nivel, campañas largas.'
+        'minimal': 'Rol mínimo. Enfoque en combate y aventura, PNJs simples y directos, diálogos breves y funcionales.',
+        'balanced': 'Rol equilibrado. Balance entre acción y rol, PNJs con personalidades definidas, diálogos naturales y significativos.',
+        'heavy': 'Rol pesado. Énfasis en desarrollo de personajes, PNJs complejos y memorables, diálogos extensos y significativos.',
+        'theatrical': 'Rol teatral. Enfoque dramático y emocional, PNJs muy expresivos y memorables, diálogos dramáticos y emotivos.'
       },
       aiStyle: {
         'simple': 'IA simple. NPCs básicos, respuestas directas, menos complejidad en las interacciones.',
@@ -141,9 +170,26 @@ const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
     return descriptions[category]?.[value] || 'Descripción no disponible.';
   };
 
-  const handleSave = () => {
-    onSave(options);
-    onClose();
+  const handleSave = async () => {
+    try {
+      // Guardar la API key
+      if (window.electronAPI) {
+        await window.electronAPI.saveApiKey(apiKey);
+      } else {
+        // Para versión web, guardar en localStorage
+        localStorage.setItem('openai_api_key', apiKey);
+      }
+      
+      // Verificar el estado de la API key después de guardar
+      await checkApiKeyStatus();
+      
+      // Guardar las opciones del juego
+      onSave(options);
+      onClose();
+    } catch (error) {
+      console.error('Error al guardar configuración:', error);
+      alert('Error al guardar la configuración. Por favor, intenta de nuevo.');
+    }
   };
 
   const getPromptModifier = () => {
@@ -280,7 +326,113 @@ const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
           </button>
         </div>
 
-                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.5fr', gap: '24px' }}>
+        {/* Sección de Configuración de API */}
+        <div style={{
+          marginBottom: '32px',
+          padding: '20px',
+          backgroundColor: '#34495e',
+          borderRadius: '12px',
+          border: '2px solid #e74c3c'
+        }}>
+          <h3 style={{ color: '#e74c3c', marginBottom: '16px', fontSize: '18px' }}>
+            🔑 Configuración de OpenAI API
+          </h3>
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ 
+              display: 'block', 
+              color: '#ecf0f1', 
+              marginBottom: '8px',
+              fontWeight: 'bold'
+            }}>
+              API Key de OpenAI
+            </label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showApiKey ? 'text' : 'password'}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="sk-..."
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: '1px solid #2c3e50',
+                  backgroundColor: '#2c3e50',
+                  color: 'white',
+                  fontSize: '14px'
+                }}
+              />
+              <button
+                onClick={() => setShowApiKey(!showApiKey)}
+                style={{
+                  position: 'absolute',
+                  right: '8px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: '#bdc3c7',
+                  cursor: 'pointer',
+                  fontSize: '16px'
+                }}
+              >
+                {showApiKey ? '🙈' : '👁️'}
+              </button>
+            </div>
+            <p style={{ 
+              fontSize: '12px', 
+              color: '#bdc3c7', 
+              marginTop: '8px',
+              lineHeight: '1.4'
+            }}>
+              Obtén tu API key en{' '}
+              <a 
+                href="https://platform.openai.com/api-keys" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{ color: '#3498db', textDecoration: 'underline' }}
+              >
+                platform.openai.com
+              </a>
+              . Esta key es necesaria para que la IA funcione correctamente.
+            </p>
+            {/* Estado de la API Key */}
+            <div style={{
+              marginTop: '12px',
+              padding: '8px 12px',
+              backgroundColor: 
+                apiKeyStatus === 'checking' ? '#f39c12' :
+                apiKeyStatus === 'configured' ? '#27ae60' : '#e74c3c',
+              borderRadius: '6px',
+              fontSize: '12px',
+              color: 'white',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              {apiKeyStatus === 'checking' && '⏳ Verificando API Key...'}
+              {apiKeyStatus === 'configured' && '✅ API Key configurada y lista'}
+              {apiKeyStatus === 'not-configured' && '❌ API Key no configurada'}
+            </div>
+            
+            {apiKey && !apiKey.startsWith('sk-') && (
+              <div style={{
+                marginTop: '8px',
+                padding: '8px 12px',
+                backgroundColor: '#e74c3c',
+                borderRadius: '6px',
+                fontSize: '12px',
+                color: 'white',
+                fontWeight: 'bold'
+              }}>
+                ⚠️ Formato de API Key inválido (debe empezar con "sk-")
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.5fr', gap: '24px' }}>
           {/* Columna Izquierda */}
           <div>
             {/* Clasificación de Contenido */}

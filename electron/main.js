@@ -18,6 +18,372 @@ const store = new Store({
   }
 })
 
+function resolveBaseRoot() {
+  // 1) Preferimos el Escritorio\DnD solitario
+  const desktopRoot = path.join(app.getPath('home'), 'Desktop', 'DnD solitario');
+  try { 
+    fs.mkdirSync(desktopRoot, { recursive: true }); 
+    return desktopRoot; 
+  } catch {}
+  
+  // 2) Fallback: Documentos\DnD solitario
+  const docsRoot = path.join(app.getPath('documents'), 'DnD solitario');
+  fs.mkdirSync(docsRoot, { recursive: true });
+  return docsRoot;
+}
+
+const BASE_ROOT = resolveBaseRoot();
+const CHAR_DIR = path.join(BASE_ROOT, 'characters');
+
+async function ensureCharDir() {
+  await fs.promises.mkdir(CHAR_DIR, { recursive: true });
+  return CHAR_DIR;
+}
+
+function slug(str) {
+  return String(str || 'Personaje')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\-_\s]/gi, '')
+    .trim().replace(/\s+/g, '_');
+}
+
+// IPC handlers para personajes
+ipcMain.handle('fs:ensureBaseDirs', async () => {
+  await ensureCharDir();
+  return { success: true, base: BASE_ROOT, characters: CHAR_DIR };
+});
+
+ipcMain.handle('fs:saveCharacter', async (_evt, { character }) => {
+  await ensureCharDir();
+  const name = slug(character?.name);
+  const file = path.join(CHAR_DIR, `${name}.json`);
+  await fs.promises.writeFile(file, JSON.stringify(character, null, 2), 'utf8');
+  console.log('🎯 PERSONAJE GUARDADO EN ARCHIVO:');
+  console.log('   📁 Ruta:', file);
+  console.log('   👤 Nombre:', character?.name || 'Sin nombre');
+  console.log('   🎭 Clase:', character?.class || 'Sin clase');
+  console.log('   📊 Nivel:', character?.level || 1);
+  return { success: true, path: file };
+});
+
+ipcMain.handle('fs:listCharacters', async () => {
+  await ensureCharDir();
+  const files = await fs.promises.readdir(CHAR_DIR);
+  return {
+    success: true,
+    data: files.filter(f => f.toLowerCase().endsWith('.json'))
+               .map(f => ({ file: f, path: path.join(CHAR_DIR, f) }))
+  };
+});
+
+ipcMain.handle('fs:loadCharacter', async (_evt, { file }) => {
+  const full = path.isAbsolute(file) ? file : path.join(CHAR_DIR, file);
+  const txt = await fs.promises.readFile(full, 'utf8');
+  return { success: true, data: JSON.parse(txt) };
+});
+
+ipcMain.handle('fs:deleteCharacter', async (_evt, { file }) => {
+  const full = path.isAbsolute(file) ? file : path.join(CHAR_DIR, file);
+  await fs.promises.unlink(full);
+  return { success: true };
+});
+
+// Mantener handlers existentes para campañas
+ipcMain.handle('ensure-dir', async (event, relPath) => {
+  try {
+    const fullPath = path.join(BASE_ROOT, relPath);
+    await fs.promises.mkdir(fullPath, { recursive: true });
+    return { success: true, path: fullPath };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('create-campaign', async (event, { campaignId, campaignName }) => {
+  try {
+    const campaignPath = path.join(BASE_ROOT, 'saves', campaignId);
+    await fs.promises.mkdir(path.join(campaignPath, 'bitacora'), { recursive: true });
+    
+    const manifest = {
+      campaign: { 
+        id: campaignId, 
+        name: campaignName, 
+        created_at: new Date().toISOString(), 
+        last_saved_at: new Date().toISOString() 
+      }
+    };
+    
+    await fs.promises.writeFile(path.join(campaignPath, 'manifest.json'), JSON.stringify(manifest, null, 2), 'utf8');
+    
+    const emptyFiles = {
+      'character.json': { main_character: null },
+      'companions.json': { companions: [] },
+      'villains.json': { villains: [] },
+      'world_state.json': { world: {} },
+      'game_state.json': { game_state: {} },
+      'bitacora/daily_logs.json': { logs: [] },
+      'bitacora/session_logs.json': { sessions: [] }
+    };
+    
+    for (const [filename, data] of Object.entries(emptyFiles)) {
+      await fs.promises.writeFile(path.join(campaignPath, filename), JSON.stringify(data, null, 2), 'utf8');
+    }
+    
+    console.log('🎮 NUEVA CAMPAÑA CREADA:');
+    console.log('   📁 Carpeta:', campaignPath);
+    console.log('   🆔 ID:', campaignId);
+    console.log('   📛 Nombre:', campaignName);
+    
+    return { success: true, path: campaignPath };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('save-json', async (event, { relPath, filename, data }) => {
+  try {
+    const fullPath = path.join(BASE_ROOT, relPath, filename);
+    await fs.promises.writeFile(fullPath, JSON.stringify(data, null, 2), 'utf8');
+    return { success: true, path: fullPath };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('save-character', async (event, { campaignId, characterData }) => {
+  try {
+    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'character.json');
+    const data = { main_character: characterData, saved_at: new Date().toISOString() };
+    await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
+    return { success: true, path: filePath };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('save-companions', async (event, { campaignId, companions }) => {
+  try {
+    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'companions.json');
+    const data = { companions, saved_at: new Date().toISOString() };
+    await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
+    return { success: true, path: filePath };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('save-villains', async (event, { campaignId, villains }) => {
+  try {
+    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'villains.json');
+    const data = { villains, saved_at: new Date().toISOString() };
+    await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
+    return { success: true, path: filePath };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('save-world-state', async (event, { campaignId, worldState }) => {
+  try {
+    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'world_state.json');
+    const data = { world: worldState, saved_at: new Date().toISOString() };
+    await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
+    return { success: true, path: filePath };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('save-game-state', async (event, { campaignId, gameState }) => {
+  try {
+    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'game_state.json');
+    const data = { game_state: gameState, saved_at: new Date().toISOString() };
+    await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
+    return { success: true, path: filePath };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('save-daily-log', async (event, { campaignId, entry }) => {
+  try {
+    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'bitacora', 'daily_logs.json');
+    let logs = { logs: [] };
+    
+    try {
+      const existing = await fs.promises.readFile(filePath, 'utf8');
+      logs = JSON.parse(existing);
+    } catch {}
+    
+    logs.logs.push({ id: Date.now().toString(), timestamp: new Date().toISOString(), ...entry });
+    await fs.promises.writeFile(filePath, JSON.stringify(logs, null, 2), 'utf8');
+    return { success: true, path: filePath };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('save-session-log', async (event, { campaignId, entry }) => {
+  try {
+    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'bitacora', 'session_logs.json');
+    let sessions = { sessions: [] };
+    
+    try {
+      const existing = await fs.promises.readFile(filePath, 'utf8');
+      sessions = JSON.parse(existing);
+    } catch {}
+    
+    sessions.sessions.push({ id: Date.now().toString(), timestamp: new Date().toISOString(), ...entry });
+    await fs.promises.writeFile(filePath, JSON.stringify(sessions, null, 2), 'utf8');
+    return { success: true, path: filePath };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('load-json', async (event, { relPath, filename }) => {
+  try {
+    const fullPath = path.join(BASE_ROOT, relPath, filename);
+    const content = await fs.promises.readFile(fullPath, 'utf8');
+    return { success: true, data: JSON.parse(content) };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('load-character', async (event, { campaignId }) => {
+  try {
+    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'character.json');
+    const content = await fs.promises.readFile(filePath, 'utf8');
+    const data = JSON.parse(content);
+    return { success: true, data: data.main_character };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('load-companions', async (event, { campaignId }) => {
+  try {
+    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'companions.json');
+    const content = await fs.promises.readFile(filePath, 'utf8');
+    const data = JSON.parse(content);
+    return { success: true, data: data.companions || [] };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('load-villains', async (event, { campaignId }) => {
+  try {
+    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'villains.json');
+    const content = await fs.promises.readFile(filePath, 'utf8');
+    const data = JSON.parse(content);
+    return { success: true, data: data.villains || [] };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('load-world-state', async (event, { campaignId }) => {
+  try {
+    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'world_state.json');
+    const content = await fs.promises.readFile(filePath, 'utf8');
+    const data = JSON.parse(content);
+    return { success: true, data: data.world || {} };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('load-game-state', async (event, { campaignId }) => {
+  try {
+    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'game_state.json');
+    const content = await fs.promises.readFile(filePath, 'utf8');
+    const data = JSON.parse(content);
+    return { success: true, data: data.game_state || {} };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('load-daily-logs', async (event, { campaignId }) => {
+  try {
+    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'bitacora', 'daily_logs.json');
+    const content = await fs.promises.readFile(filePath, 'utf8');
+    const data = JSON.parse(content);
+    return { success: true, data: data.logs || [] };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('load-session-logs', async (event, { campaignId }) => {
+  try {
+    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'bitacora', 'session_logs.json');
+    const content = await fs.promises.readFile(filePath, 'utf8');
+    const data = JSON.parse(content);
+    return { success: true, data: data.sessions || [] };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('list-campaigns', async () => {
+  try {
+    const savesPath = path.join(BASE_ROOT, 'saves');
+    const items = await fs.promises.readdir(savesPath, { withFileTypes: true });
+    const list = [];
+    
+    for (const dirent of items) {
+      if (!dirent.isDirectory()) continue;
+      const id = dirent.name;
+      let name = id, created_at = new Date().toISOString(), last_saved_at = created_at;
+      
+      try {
+        const manPath = path.join(savesPath, id, 'manifest.json');
+        const manContent = await fs.promises.readFile(manPath, 'utf8');
+        const man = JSON.parse(manContent);
+        name = man?.campaign?.name ?? name;
+        created_at = man?.campaign?.created_at ?? created_at;
+        last_saved_at = man?.campaign?.last_saved_at ?? last_saved_at;
+      } catch {}
+      
+      list.push({ id, name, created_at, last_saved_at });
+    }
+    
+    return { success: true, data: list };
+  } catch (error) {
+    return { success: true, data: [] };
+  }
+});
+
+ipcMain.handle('get-app-path', () => {
+  return app.getPath('userData');
+});
+
+ipcMain.handle('get-documents-path', () => {
+  return app.getPath('documents');
+});
+
+// Handlers existentes para configuración
+ipcMain.handle('get-config', () => {
+  return store.get('settings')
+})
+
+ipcMain.handle('save-config', (event, config) => {
+  store.set('settings', config)
+  return true
+})
+
+ipcMain.handle('get-api-key', () => {
+  return store.get('apiKey')
+})
+
+ipcMain.handle('save-api-key', (event, apiKey) => {
+  store.set('apiKey', apiKey)
+  return true
+})
+
 let mainWindow
 
 function createWindow() {
@@ -37,7 +403,7 @@ function createWindow() {
     },
     icon: path.join(__dirname, '../public/dice.png'),
     titleBarStyle: 'default',
-    show: true // Cambiar a true para mostrar inmediatamente
+    show: true
   })
 
   console.log('Ventana creada, cargando URL...')
@@ -218,63 +584,5 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow()
-  }
-})
-
-// IPC Handlers
-ipcMain.handle('get-config', () => {
-  return store.get('settings')
-})
-
-ipcMain.handle('save-config', (event, config) => {
-  store.set('settings', config)
-  return true
-})
-
-ipcMain.handle('get-api-key', () => {
-  return store.get('apiKey')
-})
-
-ipcMain.handle('save-api-key', (event, apiKey) => {
-  store.set('apiKey', apiKey)
-  return true
-})
-
-ipcMain.handle('save-file', async (event, { filePath, data, type }) => {
-  try {
-    if (type === 'excel') {
-      // Lógica para guardar Excel
-      return { success: true }
-    } else {
-      fs.writeFileSync(filePath, JSON.stringify(data, null, 2))
-      return { success: true }
-    }
-  } catch (error) {
-    return { success: false, error: error.message }
-  }
-})
-
-ipcMain.handle('load-file', async (event, filePath) => {
-  try {
-    const data = fs.readFileSync(filePath, 'utf8')
-    return { success: true, data: JSON.parse(data) }
-  } catch (error) {
-    return { success: false, error: error.message }
-  }
-})
-
-ipcMain.handle('export-excel', async (event, gameData) => {
-  try {
-    const result = await dialog.showSaveDialog(mainWindow, {
-      filters: [{ name: 'Archivos Excel', extensions: ['xlsx'] }]
-    })
-    
-    if (!result.canceled) {
-      // Aquí implementaremos la lógica de exportación a Excel
-      return { success: true, filePath: result.filePath }
-    }
-    return { success: false, error: 'Operación cancelada' }
-  } catch (error) {
-    return { success: false, error: error.message }
   }
 })

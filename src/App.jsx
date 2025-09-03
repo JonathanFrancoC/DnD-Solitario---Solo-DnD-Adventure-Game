@@ -4,12 +4,15 @@ import CampaignManager from './components/CampaignManager'
 import CharacterSheet from './components/sheet/CharacterSheet'
 import CharacterManager from './components/CharacterManager'
 import GameOptions from './components/GameOptions'
+import GameArea from './components/GameArea'
+import CharacterStatsViewer from './components/CharacterStatsViewer'
 import { getCharacterTraits, getCharacterDescription } from './data/characterTraits'
 import { raceData, classData, backgroundData, savingThrowsByClass, classSkillOptions } from './data/gameData'
 import { classEquipment } from './data/classEquipment'
 import { backgroundPersonalities } from './utils/backgroundPersonalities'
 import { initializeFileSystem } from './utils/fileSystemUtils'
 import { getSpellSlots, CASTER_TYPE } from './data/spellcastingData'
+import gameSaveService from './utils/gameSaveService'
 
 function App() {
   console.log('COMPONENTE APP RENDERIZANDO - INICIO')
@@ -23,6 +26,10 @@ function App() {
   const [showNewGameMenu, setShowNewGameMenu] = useState(false)
   const [submenuSource, setSubmenuSource] = useState('') // 'newGame' o 'createCharacter'
   const [creationMode, setCreationMode] = useState('guided') // 'guided', 'custom', 'random'
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [gameState, setGameState] = useState(null)
+  const [showCharacterSheet, setShowCharacterSheet] = useState(false)
+  const [showCharacterStats, setShowCharacterStats] = useState(false)
   
      // Estado para la hoja de personaje
    const [sheetLocked, setSheetLocked] = useState(true); // true = NO editable (modo preview) - Solo se desbloquea durante subida de nivel
@@ -374,11 +381,20 @@ function App() {
     console.log('fileSystemInitialized:', fileSystemInitialized);
     
     try {
+      // Crear una copia del personaje con el estado de vida/muerte
+      const characterWithStatus = {
+        ...characterData,
+        status: {
+          alive: true,
+          lastUpdated: new Date().toISOString()
+        }
+      };
+      
       // Intentar usar el sistema de archivos si está disponible
       if (fileSystemInitialized) {
         console.log('Sistema de archivos inicializado, intentando guardar en archivo...');
         const { saveCharacterToFile } = await import('./utils/fileSystemUtils');
-        const success = await saveCharacterToFile(characterData, characterData.name.trim());
+        const success = await saveCharacterToFile(characterWithStatus, characterData.name.trim());
         console.log('Resultado del guardado en archivo:', success);
         if (success) {
           alert(`Personaje "${characterData.name}" guardado exitosamente en archivo`);
@@ -394,7 +410,7 @@ function App() {
       const characterToSave = {
         id: Date.now().toString(),
         name: characterData.name.trim(),
-        data: characterData,
+        data: characterWithStatus,
         savedAt: new Date().toISOString(),
         lastModified: new Date().toISOString()
       };
@@ -521,6 +537,131 @@ function App() {
   const handleContinueGame = () => {
     console.log('Continuar partida')
     alert('Función de continuar partida en desarrollo')
+  }
+
+    const handleStartGame = async (character) => {
+    console.log('Iniciando juego con personaje:', character)
+  
+    // Crear una copia del personaje para la campaña
+    let characterCopy = JSON.parse(JSON.stringify(character))
+    
+    // Agregar estado de vida/muerte al personaje
+    characterCopy.status = {
+      alive: true,
+      lastUpdated: new Date().toISOString()
+    }
+    
+    // Inicializar mecánicas de clase si no existen
+    if (!characterCopy.mechanics) {
+      characterCopy.mechanics = {}
+    }
+  
+    // Inicializar inspiración bárdica si es un bardo
+    if (characterCopy.class === 'bardo' && !characterCopy.mechanics.bardicInspiration) {
+      const maxUses = characterCopy.level >= 5 ? 3 : 2
+      characterCopy.mechanics.bardicInspiration = {
+        isActive: false,
+        currentUses: 0,
+        maxUses: maxUses
+      }
+    }
+  
+    // Crear el estado inicial del juego
+    const initialGameState = {
+      character: characterCopy,
+      world: {
+        currentLocation: 'Taberna del Dragón Durmiente',
+        discoveredLocations: ['Taberna del Dragón Durmiente'],
+        quests: [],
+        npcs: {
+          'Tabernero': {
+            name: 'Gareth',
+            description: 'Un hombre robusto y amigable que regenta la taberna',
+            disposition: 'friendly',
+            known: true
+          }
+        },
+        events: [],
+        weather: 'Soleado',
+        timeOfDay: 'Mediodía'
+      },
+      combat: {
+        isActive: false,
+        currentEnemies: [],
+        turn: 0,
+        initiative: [],
+        effects: []
+      },
+      messages: [],
+      lastUpdate: new Date().toISOString()
+    }
+  
+    // Si hay una campaña activa, guardar el estado inicial con la copia del personaje
+    if (currentCampaignId) {
+      gameSaveService.setCurrentCampaign(currentCampaignId);
+      await gameSaveService.saveFullGameState(initialGameState, characterCopy);
+    }
+  
+    setGameState(initialGameState)
+    setIsPlaying(true)
+    setShowMenu(false)
+    setShowCharacterList(false)
+    setShowNewGameMenu(false)
+    setSubmenuSource('')
+    setIsCreatingCharacter(false)
+  }
+
+  const handleBackToMenu = () => {
+    setShowMenu(true)
+    setIsPlaying(false)
+    setGameState(null)
+    setShowCharacterList(false)
+    setShowNewGameMenu(false)
+    setSubmenuSource('')
+    setIsCreatingCharacter(false)
+    setShowCampaignManager(false)
+  }
+
+  const handleUpdateGameState = (newGameState) => {
+    setGameState(newGameState)
+  }
+
+  const handleCampaignSelect = async (campaignId, campaignData) => {
+    console.log('Campaña seleccionada:', campaignId, campaignData);
+    
+    // Establecer la campaña actual
+    setCurrentCampaignId(campaignId);
+    gameSaveService.setCurrentCampaign(campaignId);
+    
+    // Si hay datos de campaña, cargarlos
+    if (campaignData && campaignData.game_state && campaignData.game_state.game_state) {
+      setGameState(campaignData.game_state.game_state);
+      setIsPlaying(true);
+      setShowMenu(false);
+      setShowCampaignManager(false);
+    } else {
+      // Si no hay datos, ir al menú de nuevo juego
+      setShowNewGameMenu(true);
+      setShowCampaignManager(false);
+    }
+  }
+
+  const handleNewCampaign = (campaignId) => {
+    console.log('Nueva campaña creada:', campaignId);
+    setCurrentCampaignId(campaignId);
+    gameSaveService.setCurrentCampaign(campaignId);
+    setShowNewGameMenu(true);
+    setShowCampaignManager(false);
+  }
+
+  const handleShowCharacterSheet = () => {
+    setShowCharacterSheet(true)
+    setIsPlaying(false)
+  }
+
+  const handleBackToGame = () => {
+    setShowCharacterSheet(false)
+    setIsPlaying(true)
   }
 
   const handleOpenSettings = () => {
@@ -684,14 +825,7 @@ function App() {
     }
   }
 
-  const handleBackToMenu = () => {
-    setShowMenu(true)
-    setShowCharacterList(false)
-    setShowNewGameMenu(false)
-    setSubmenuSource('') // Resetear la fuente del submenú
-    setIsCreatingCharacter(false) // Asegurar que no esté en modo creación
-    setShowCampaignManager(false) // Asegurar que no esté en gestor de campañas
-  }
+
 
   // Función para asegurar que los datos del personaje tengan la estructura correcta
   const ensureCharacterDataStructure = (data) => {
@@ -896,16 +1030,8 @@ function App() {
         fontFamily: 'Arial, sans-serif'
       }}>
         <CampaignManager 
-          onCampaignSelect={(campaignId, manifest) => {
-            setCurrentCampaignId(campaignId);
-            setShowCampaignManager(false);
-            console.log('Campaña seleccionada:', campaignId);
-          }}
-          onNewCampaign={(campaignId) => {
-            setCurrentCampaignId(campaignId);
-            setShowCampaignManager(false);
-            console.log('Nueva campaña creada:', campaignId);
-          }}
+          onCampaignSelect={handleCampaignSelect}
+          onNewCampaign={handleNewCampaign}
         />
         <button
           onClick={handleBackToMenu}
@@ -1191,9 +1317,10 @@ function App() {
             borderRadius: '0 0 8px 8px',
             minHeight: '400px'
           }}>
-            <CharacterManager 
+                        <CharacterManager
               characterData={characterData}
               onLoadCharacter={handleLoadCharacter}
+              onStartGame={handleStartGame}
             />
           </div>
 
@@ -1256,9 +1383,175 @@ function App() {
     }
   }
 
+  // Si estamos jugando, mostrar el área de juego
+  if (isPlaying && gameState) {
+    return (
+      <GameArea
+        gameState={gameState}
+        updateGameState={handleUpdateGameState}
+        onBackToMenu={handleBackToMenu}
+        onShowCharacterSheet={handleShowCharacterSheet}
+        onViewCharacterStats={() => setShowCharacterStats(true)}
+        campaignId={currentCampaignId}
+        gameOptions={gameOptions}
+      />
+    )
+  }
+
+  // Si estamos mostrando la hoja de personaje desde el juego
+  if (showCharacterSheet && gameState) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: '#f5f5dc',
+        color: '#333',
+        fontFamily: 'Arial, sans-serif',
+        padding: '20px',
+        overflowY: 'auto',
+        maxHeight: '100vh'
+      }}>
+        {/* Controles de la hoja de personaje */}
+        <div style={{
+          position: 'fixed',
+          top: '10px',
+          right: '10px',
+          zIndex: 9999,
+          display: 'flex',
+          gap: '10px'
+        }}>
+          {/* Botón Volver al Juego */}
+          <button
+            onClick={handleBackToGame}
+            style={{
+              background: 'linear-gradient(135deg, #007bff 0%, #0056b3 100%)',
+              color: 'white',
+              border: 'none',
+              padding: '10px 20px',
+              borderRadius: '5px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}
+            onMouseOver={(e) => {
+              e.target.style.background = 'linear-gradient(135deg, #0056b3 0%, #004085 100%)';
+              e.target.style.transform = 'scale(1.05)';
+            }}
+            onMouseOut={(e) => {
+              e.target.style.background = 'linear-gradient(135deg, #007bff 0%, #0056b3 100%)';
+              e.target.style.transform = 'scale(1)';
+            }}
+          >
+            🎮 Volver al Juego
+          </button>
+
+          {/* Botón Guardar */}
+          <button
+            onClick={handleSaveCharacter}
+            style={{
+              background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
+              color: 'white',
+              border: 'none',
+              padding: '10px 20px',
+              borderRadius: '5px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}
+            onMouseOver={(e) => {
+              e.target.style.background = 'linear-gradient(135deg, #20c997 0%, #17a2b8 100%)';
+              e.target.style.transform = 'scale(1.05)';
+            }}
+            onMouseOut={(e) => {
+              e.target.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
+              e.target.style.transform = 'scale(1)';
+            }}
+          >
+            💾 Guardar
+          </button>
+
+          {/* Botón Borrar */}
+          <button
+            onClick={() => {
+              if (confirm('¿Estás seguro de que quieres eliminar este personaje? Esta acción no se puede deshacer.')) {
+                handleDeleteCharacter();
+              }
+            }}
+            style={{
+              background: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)',
+              color: 'white',
+              border: 'none',
+              padding: '10px 20px',
+              borderRadius: '5px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}
+            onMouseOver={(e) => {
+              e.target.style.background = 'linear-gradient(135deg, #c82333 0%, #bd2130 100%)';
+              e.target.style.transform = 'scale(1.05)';
+            }}
+            onMouseOut={(e) => {
+              e.target.style.background = 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)';
+              e.target.style.transform = 'scale(1)';
+            }}
+          >
+            🗑️ Borrar
+          </button>
+
+          {/* Botón Volver al Menú */}
+          <button
+            onClick={handleBackToMenu}
+            style={{
+              background: 'linear-gradient(135deg, #6c757d 0%, #343a40 100%)',
+              color: 'white',
+              border: 'none',
+              padding: '10px 20px',
+              borderRadius: '5px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}
+            onMouseOver={(e) => {
+              e.target.style.background = 'linear-gradient(135deg, #343a40 0%, #212529 100%)';
+              e.target.style.transform = 'scale(1.05)';
+            }}
+            onMouseOut={(e) => {
+              e.target.style.background = 'linear-gradient(135deg, #6c757d 0%, #343a40 100%)';
+              e.target.style.transform = 'scale(1)';
+            }}
+          >
+            🏠 Volver al Menú
+          </button>
+        </div>
+
+        <CharacterSheet
+          characterData={gameState.character}
+          setCharacterData={(data) => {
+            const updatedGameState = { ...gameState, character: data }
+            setGameState(updatedGameState)
+          }}
+          locked={sheetLocked}
+          setLocked={setSheetLocked}
+        />
+      </div>
+    )
+  }
+
   // Si no estamos en el menú y no estamos creando con el componente paso a paso,
   // mostrar la hoja de personaje con el nuevo sistema de pestañas
-  if (!showMenu && !isCreatingCharacter && !showCampaignManager && !showCharacterList && !showNewGameMenu) {
+  if (!showMenu && !isCreatingCharacter && !showCampaignManager && !showCharacterList && !showNewGameMenu && !isPlaying) {
     console.log('Mostrando hoja de personaje con nuevo sistema de pestañas')
     console.log('characterData en viewer:', characterData)
 
@@ -1272,39 +1565,99 @@ function App() {
         overflowY: 'auto',
         maxHeight: '100vh'
       }}>
-                 {/* Controles de la hoja de personaje */}
-         <div style={{
-           position: 'fixed',
-           top: '10px',
-           right: '10px',
-           zIndex: 9999,
-           display: 'flex',
-           gap: '10px'
-         }}>
-           
-           {/* Botón Volver al Menú */}
-           <button
-             onClick={handleBackToMenu}
-             style={{
-               background: 'linear-gradient(135deg, #6c757d 0%, #495057 100%)',
-               color: 'white',
-               border: 'none',
-               padding: '10px 20px',
-               borderRadius: '5px',
-               cursor: 'pointer',
-               fontSize: '14px',
-               fontWeight: 'bold'
-             }}
-             onMouseOver={(e) => {
-               e.target.style.background = 'linear-gradient(135deg, #495057 0%, #343a40 100%)';
-             }}
-             onMouseOut={(e) => {
-               e.target.style.background = 'linear-gradient(135deg, #6c757d 0%, #495057 100%)';
-             }}
-           >
-             ← Volver al Menú
-           </button>
-         </div>
+                           {/* Controles de la hoja de personaje */}
+          <div style={{
+            position: 'fixed',
+            top: '10px',
+            right: '10px',
+            zIndex: 9999,
+            display: 'flex',
+            gap: '10px'
+          }}>
+            
+            {/* Botón Guardar */}
+            <button
+              onClick={handleSaveCharacter}
+              style={{
+                background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
+                color: 'white',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+              onMouseOver={(e) => {
+                e.target.style.background = 'linear-gradient(135deg, #20c997 0%, #17a2b8 100%)';
+                e.target.style.transform = 'scale(1.05)';
+              }}
+              onMouseOut={(e) => {
+                e.target.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
+                e.target.style.transform = 'scale(1)';
+              }}
+            >
+              💾 Guardar
+            </button>
+
+            {/* Botón Borrar */}
+            <button
+              onClick={() => {
+                if (confirm('¿Estás seguro de que quieres eliminar este personaje? Esta acción no se puede deshacer.')) {
+                  handleDeleteCharacter();
+                }
+              }}
+              style={{
+                background: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)',
+                color: 'white',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+              onMouseOver={(e) => {
+                e.target.style.background = 'linear-gradient(135deg, #c82333 0%, #bd2130 100%)';
+                e.target.style.transform = 'scale(1.05)';
+              }}
+              onMouseOut={(e) => {
+                e.target.style.background = 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)';
+                e.target.style.transform = 'scale(1)';
+              }}
+            >
+              🗑️ Borrar
+            </button>
+            
+            {/* Botón Volver al Menú */}
+            <button
+              onClick={handleBackToMenu}
+              style={{
+                background: 'linear-gradient(135deg, #6c757d 0%, #495057 100%)',
+                color: 'white',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold'
+              }}
+              onMouseOver={(e) => {
+                e.target.style.background = 'linear-gradient(135deg, #495057 0%, #343a40 100%)';
+              }}
+              onMouseOut={(e) => {
+                e.target.style.background = 'linear-gradient(135deg, #6c757d 0%, #495057 100%)';
+              }}
+            >
+              ← Volver al Menú
+            </button>
+          </div>
 
         {/* Título */}
         <div style={{
@@ -1499,6 +1852,42 @@ function App() {
              🔗 Continuar Partida
              </button>
              <button
+               onClick={() => setShowCharacterStats(true)}
+               disabled={!hasSavedGame}
+               style={{
+               width: '300px',
+               background: hasSavedGame ? 'linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%)' : 'linear-gradient(135deg, #6c757d 0%, #343a40 100%)',
+                 color: 'white',
+                 fontWeight: 'bold',
+                 padding: '24px 32px',
+                 borderRadius: '12px',
+                 border: 'none',
+                 cursor: hasSavedGame ? 'pointer' : 'not-allowed',
+               fontSize: '20px',
+                 display: 'flex',
+                 alignItems: 'center',
+                 justifyContent: 'center',
+                 gap: '16px',
+                 boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+                 transition: 'all 0.3s ease',
+                 opacity: hasSavedGame ? 1 : 0.5
+               }}
+               onMouseOver={(e) => {
+                 if (hasSavedGame) {
+                   e.target.style.background = 'linear-gradient(135deg, #8e44ad 0%, #7d3c98 100%)';
+                   e.target.style.transform = 'scale(1.05)';
+                 }
+               }}
+               onMouseOut={(e) => {
+                 if (hasSavedGame) {
+                   e.target.style.background = 'linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%)';
+                   e.target.style.transform = 'scale(1)';
+                 }
+               }}
+             >
+               👥 Ver Estadísticas de Personajes
+             </button>
+             <button
                onClick={handleOpenSettings}
                style={{
                width: '300px',
@@ -1537,6 +1926,15 @@ function App() {
              onClose={handleCloseGameOptions}
              onSave={handleSaveGameOptions}
              currentOptions={gameOptions}
+           />
+         )}
+
+         {/* Modal de Estadísticas de Personajes */}
+         {showCharacterStats && (
+           <CharacterStatsViewer
+             onClose={() => setShowCharacterStats(false)}
+             campaignId={currentCampaignId}
+             mainCharacter={gameState?.character}
            />
          )}
     </>

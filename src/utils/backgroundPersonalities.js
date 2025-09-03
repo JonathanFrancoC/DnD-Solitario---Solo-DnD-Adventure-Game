@@ -478,5 +478,191 @@ export const backgroundPersonalities = {
       "Me aferro a cosas inútiles por miedo a perder.",
       "Huyo cuando debería plantar cara."
     ]
+  },
+
+  // Fondos adicionales para villanos y compañeros
+  "asesino": {
+    personalityTraits: [
+      "Siempre tengo un plan de escape.",
+      "Mantengo la compostura bajo presión.",
+      "Confío más en contactos que en autoridades.",
+      "Prefiero las sombras a los focos.",
+      "Evalúo una habitación buscando vías y amenazas.",
+      "Hablo poco y observo mucho.",
+      "Pongo precio a casi todo.",
+      "Me gusta el humor ácido en momentos tensos."
+    ],
+    ideals: [
+      "Honor. No traiciono a quien comparte mi oficio.",
+      "Libertad. Romper cadenas es un deber.",
+      "Compasión. Los débiles necesitan alguien duro a su lado.",
+      "Justicia. Ojo por ojo con los abusadores.",
+      "Cambio. Una ciudad se renueva desde sus bajos fondos.",
+      "Aspiración. Lideraré mi propio gremio."
+    ],
+    bonds: [
+      "Mi banda es mi familia.",
+      "Guardo una lista de favores por cobrar.",
+      "Debo proteger a quien me salvó de la horca.",
+      "Un barrio me considera su guardián en la sombra.",
+      "Jamás abandono a un compañero en el trabajo.",
+      "Conservo una insignia de un caso sin resolver."
+    ],
+    flaws: [
+      "Lo brillante me distrae demasiado.",
+      "Golpeo primero, pregunto después.",
+      "Improviso y \"olvido\" los planes.",
+      "Tengo un problema profundo con la autoridad.",
+      "Confío demasiado en mi reputación.",
+      "Subestimo los riesgos cuando huelo ganancias."
+    ]
+  },
+
+  "mercenario": {
+    personalityTraits: [
+      "Mantengo el equipo impecable.",
+      "Mido el terreno instintivamente.",
+      "Sigo órdenes… pero no soy ciego.",
+      "Conozco el valor del silencio táctico.",
+      "Animo a los demás en momentos duros.",
+      "Me levanto antes del alba por costumbre.",
+      "No dejo preguntas sin respuesta en el informe.",
+      "Respeto rangos aunque no comparta decisiones."
+    ],
+    ideals: [
+      "Mayor Bien. Lucho por algo más grande que yo.",
+      "Responsabilidad. Cumplir órdenes salva vidas.",
+      "Independencia. La obediencia también piensa.",
+      "Fuerza. La preparación vence a la suerte.",
+      "Lealtad. Mi unidad es mi familia.",
+      "Honor. Mi palabra pesa como acero."
+    ],
+    bonds: [
+      "Mi escuadrón me necesita.",
+      "Guardo un estandarte de campaña.",
+      "Debo a un camarada la vida.",
+      "Vigilo a la familia de un caído.",
+      "Defiendo una frontera que pocos miran.",
+      "Una promesa hecha en el frente me guía."
+    ],
+    flaws: [
+      "Me cuesta dejar la disciplina… incluso en fiesta.",
+      "Soy impaciente con la incompetencia.",
+      "Subestimo a civiles en combate.",
+      "Guardo rencores de guerra.",
+      "Me vuelvo temerario para proteger a otros.",
+      "Obedezco incluso cuando debería cuestionar."
+    ]
+  },
+
+  "cultista": {
+    personalityTraits: [
+      "Hablo con solemnidad y midiendo cada palabra.",
+      "Soy paciente incluso cuando otros pierden la calma.",
+      "Procuro ver la chispa de bondad en cualquiera.",
+      "Respeto profundamente la jerarquía religiosa.",
+      "Busco señales y presagios en lo cotidiano.",
+      "Siempre tengo una parábola lista para ilustrar algo.",
+      "Tolero otras creencias, pero defiendo la mía con firmeza.",
+      "Me esfuerzo por ser un ejemplo de mi fe."
+    ],
+    ideals: [
+      "Tradición. Las costumbres sagradas nos sostienen.",
+      "Caridad. Ayudar a los necesitados es una obligación.",
+      "Cambio. El mundo mejora con pequeños actos constantes.",
+      "Poder. Aspiro a guiar a mi congregación algún día.",
+      "Fe. Confío en la guía divina por encima de todo.",
+      "Aspiración. Debo ser digno del favor de mi deidad."
+    ],
+    bonds: [
+      "Mi templo es mi hogar y mi deber.",
+      "Protejo a mis compañeros de orden a cualquier costo.",
+      "Debo la vida a un milagro; vivo para retribuirlo.",
+      "Guardo un texto sagrado que no debe perderse.",
+      "Prometí llevar consuelo a quien sufre.",
+      "Un anciano sacerdote me formó; honro su legado."
+    ],
+    flaws: [
+      "Me cuesta aceptar otras doctrinas.",
+      "Confío demasiado en los de mi fe.",
+      "Soy inflexible cuando creo tener razón moral.",
+      "Desconfío de los extraños por instinto.",
+      "Me aferro a planes \"por voluntad divina\" aunque sean imprudentes.",
+      "Me culpo en exceso por mis errores."
+    ]
+  },
+
+  "guardia": {
+    personalityTraits: [
+      "Mantengo el equipo impecable.",
+      "Mido el terreno instintivamente.",
+      "Sigo órdenes… pero no soy ciego.",
+      "Conozco el valor del silencio táctico.",
+      "Animo a los demás en momentos duros.",
+      "Me levanto antes del alba por costumbre.",
+      "No dejo preguntas sin respuesta en el informe.",
+      "Respeto rangos aunque no comparta decisiones."
+    ],
+    ideals: [
+      "Mayor Bien. Lucho por algo más grande que yo.",
+      "Responsabilidad. Cumplir órdenes salva vidas.",
+      "Independencia. La obediencia también piensa.",
+      "Fuerza. La preparación vence a la suerte.",
+      "Lealtad. Mi unidad es mi familia.",
+      "Honor. Mi palabra pesa como acero."
+    ],
+    bonds: [
+      "Mi escuadrón me necesita.",
+      "Guardo un estandarte de campaña.",
+      "Debo a un camarada la vida.",
+      "Vigilo a la familia de un caído.",
+      "Defiendo una frontera que pocos miran.",
+      "Una promesa hecha en el frente me guía."
+    ],
+    flaws: [
+      "Me cuesta dejar la disciplina… incluso en fiesta.",
+      "Soy impaciente con la incompetencia.",
+      "Subestimo a civiles en combate.",
+      "Guardo rencores de guerra.",
+      "Me vuelvo temerario para proteger a otros.",
+      "Obedezco incluso cuando debería cuestionar."
+    ]
+  },
+
+  "curandero": {
+    personalityTraits: [
+      "Soy paciente incluso cuando otros pierden la calma.",
+      "Procuro ver la chispa de bondad en cualquiera.",
+      "Busco señales y presagios en lo cotidiano.",
+      "Siempre tengo una parábola lista para ilustrar algo.",
+      "Tolero otras creencias, pero defiendo la mía con firmeza.",
+      "Me esfuerzo por ser un ejemplo de mi fe.",
+      "Valoro el trabajo bien hecho por encima del aplauso.",
+      "Me gusta enseñar mi oficio a aprendices."
+    ],
+    ideals: [
+      "Caridad. Ayudar a los necesitados es una obligación.",
+      "Cambio. El mundo mejora con pequeños actos constantes.",
+      "Trabajo. La excelencia se forja día a día.",
+      "Comunidad. El gremio eleva la ciudad.",
+      "Compartir. El conocimiento crece al repartirse.",
+      "Autosuficiencia. Aprender para depender menos."
+    ],
+    bonds: [
+      "Debo la vida a un milagro; vivo para retribuirlo.",
+      "Prometí llevar consuelo a quien sufre.",
+      "Un cliente fiel me salvó de la ruina.",
+      "Un aprendiz depende de mi guía.",
+      "Un encargo prestigioso puede consagrarme.",
+      "Prometí educar a mentes jóvenes."
+    ],
+    flaws: [
+      "Me cuesta aceptar otras doctrinas.",
+      "Confío demasiado en los de mi fe.",
+      "Soy inflexible cuando creo tener razón moral.",
+      "Desconfío de los extraños por instinto.",
+      "Me aferro a planes \"por voluntad divina\" aunque sean imprudentes.",
+      "Me culpo en exceso por mis errores."
+    ]
   }
 };

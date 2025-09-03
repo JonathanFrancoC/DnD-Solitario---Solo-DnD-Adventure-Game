@@ -1,7 +1,6 @@
 // CampaignManager.jsx - Gestor de campañas
 import React, { useState, useEffect } from 'react';
-// Para aplicaciones de escritorio, el sistema de guardado se maneja directamente
-// desde el componente principal que tiene acceso al sistema de archivos
+import gameSaveService from '../utils/gameSaveService';
 
 const CampaignManager = ({ onCampaignSelect, onNewCampaign }) => {
   const [campaigns, setCampaigns] = useState([]);
@@ -21,8 +20,12 @@ const CampaignManager = ({ onCampaignSelect, onNewCampaign }) => {
   const loadCampaigns = async () => {
     try {
       setLoading(true);
-      // Para aplicaciones de escritorio, esto se maneja desde el componente principal
-      setCampaigns([]);
+      // Inicializar el servicio de guardado
+      await gameSaveService.initialize();
+      
+      // Cargar campañas disponibles
+      const availableCampaigns = await gameSaveService.listCampaigns();
+      setCampaigns(availableCampaigns);
       setError(null);
     } catch (err) {
       setError(`Error cargando campañas: ${err.message}`);
@@ -41,15 +44,20 @@ const CampaignManager = ({ onCampaignSelect, onNewCampaign }) => {
 
     try {
       setLoading(true);
-      // Para aplicaciones de escritorio, esto se maneja desde el componente principal
-      console.log('Creando campaña:', newCampaignData);
       
-      setNewCampaignData({ id: '', name: '', ruleset: 'DND5E-es' });
-      setShowCreateForm(false);
-      await loadCampaigns();
+      // Crear la campaña usando el servicio de guardado
+      const success = await gameSaveService.createCampaign(newCampaignData.id, newCampaignData.name);
       
-      if (onNewCampaign) {
-        onNewCampaign(newCampaignData.id);
+      if (success) {
+        setNewCampaignData({ id: '', name: '', ruleset: 'DND5E-es' });
+        setShowCreateForm(false);
+        await loadCampaigns();
+        
+        if (onNewCampaign) {
+          onNewCampaign(newCampaignData.id);
+        }
+      } else {
+        setError('Error al crear la campaña');
       }
     } catch (err) {
       setError(`Error creando campaña: ${err.message}`);
@@ -60,10 +68,11 @@ const CampaignManager = ({ onCampaignSelect, onNewCampaign }) => {
 
   const handleSelectCampaign = async (campaignId) => {
     try {
-      // Para aplicaciones de escritorio, esto se maneja desde el componente principal
-      console.log('Seleccionando campaña:', campaignId);
+      // Cargar datos de la campaña
+      const campaignData = await gameSaveService.loadCampaignData(campaignId);
+      
       if (onCampaignSelect) {
-        onCampaignSelect(campaignId, {});
+        onCampaignSelect(campaignId, campaignData);
       }
     } catch (err) {
       setError(`Error cargando campaña: ${err.message}`);

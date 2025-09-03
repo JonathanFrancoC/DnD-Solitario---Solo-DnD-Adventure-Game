@@ -1,7 +1,7 @@
 import React from 'react'
 import { Play, BookOpen, Settings, Sword, Shield, Map } from 'lucide-react'
 
-const MainMenu = ({ onNewGame, onContinueGame, onOpenSettings, hasSavedGame }) => {
+const MainMenu = ({ onNewGame, onContinueGame, onOpenSettings, onViewCharacterStats, hasSavedGame }) => {
   return (
     <div style={{ 
       height: '100vh', 
@@ -93,6 +93,25 @@ const MainMenu = ({ onNewGame, onContinueGame, onOpenSettings, hasSavedGame }) =
             <BookOpen size={24} className="relative z-10" />
             <span className="relative z-10 text-lg">
               {hasSavedGame ? 'Continuar Partida' : 'No hay partida guardada'}
+            </span>
+          </button>
+
+          {/* Ver Estadísticas de Personajes */}
+          <button
+            onClick={onViewCharacterStats}
+            disabled={!hasSavedGame}
+            className={`w-full group relative overflow-hidden font-bold py-6 px-8 rounded-xl transition-all duration-300 shadow-lg flex items-center justify-center gap-4 ${
+              hasSavedGame
+                ? 'bg-gradient-to-r from-purple-700 to-purple-600 hover:from-purple-600 hover:to-purple-500 text-white hover:shadow-xl transform hover:scale-105'
+                : 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
+            }`}
+          >
+            <div className={`absolute inset-0 bg-gradient-to-r from-dnd-gold/20 to-transparent opacity-0 transition-opacity duration-300 ${
+              hasSavedGame ? 'group-hover:opacity-100' : ''
+            }`}></div>
+            <Sword size={24} className="relative z-10" />
+            <span className="relative z-10 text-lg">
+              {hasSavedGame ? 'Ver Estadísticas de Personajes' : 'No hay partida guardada'}
             </span>
           </button>
 

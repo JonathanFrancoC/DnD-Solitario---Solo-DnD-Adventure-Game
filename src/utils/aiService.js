@@ -1,8 +1,23 @@
 // Servicio para la integración con ChatGPT
 
-// Configuración de la API (deberás configurar tu API key)
-const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY || 'tu-api-key-aqui'
+// Configuración de la API
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions'
+
+// Función para obtener la API key del usuario
+const getApiKey = async () => {
+  try {
+    if (window.electronAPI) {
+      // Para aplicaciones de escritorio
+      return await window.electronAPI.getApiKey();
+    } else {
+      // Para versión web
+      return localStorage.getItem('openai_api_key') || import.meta.env.VITE_OPENAI_API_KEY || '';
+    }
+  } catch (error) {
+    console.error('Error al obtener API key:', error);
+    return '';
+  }
+};
 
 // Para aplicaciones de escritorio, el sistema de guardado se maneja directamente
 // No necesitamos importaciones web aquí
@@ -96,6 +111,29 @@ Los enemigos y aliados actúan según atributos, trasfondo y moral:
 - Con vínculo, permite órdenes simples con Manejo de Animales
 - Terceros reaccionan con alarma/curiosidad/temor según criatura
 
+## 14) ACCIONES ESPECIALES DEL JUGADOR
+El jugador tiene acceso a tres acciones especiales que solo se pueden usar cuando tú las apruebes:
+
+### DESCANSO CORTO
+- **Cuándo aprobar**: Cuando el jugador esté en un lugar seguro, sin amenazas inmediatas, y haya pasado al menos 1 hora desde el último descanso corto
+- **Condiciones**: El lugar debe ser relativamente tranquilo (taberna, campamento seguro, posada, etc.)
+- **Frase de aprobación**: "Puedes tomar un descanso corto aquí" o "Es seguro tomar un descanso corto"
+- **Efectos**: Recupera algunos puntos de vida y recursos limitados
+
+### DESCANSO LARGO
+- **Cuándo aprobar**: Cuando el jugador esté en un lugar completamente seguro, sin amenazas, y sea apropiado para dormir 8 horas
+- **Condiciones**: Posada, campamento bien protegido, casa de aliados, etc.
+- **Frase de aprobación**: "Puedes tomar un descanso largo aquí" o "Es seguro tomar un descanso largo"
+- **Efectos**: Recupera todos los puntos de vida y recursos
+
+### SUBIR DE NIVEL
+- **Cuándo aprobar**: Cuando el jugador haya completado un hito narrativo significativo (derrotar un jefe, completar una misión importante, resolver un conflicto mayor)
+- **Condiciones**: Debe haber una pausa natural en la acción, no en medio de combate o peligro
+- **Frase de aprobación**: "Puedes subir de nivel" o "Es momento de subir de nivel"
+- **Efectos**: Incrementa el nivel del personaje y sus capacidades
+
+**IMPORTANTE**: Solo aprueba estas acciones cuando sea narrativamente apropiado. No las apruebes en medio de combate, en lugares peligrosos, o cuando no tenga sentido lógico.
+
 ## REGLAS ESPECÍFICAS PARA ESTA SESIÓN:
 - Responde en español
 - Sé descriptivo pero conciso
@@ -110,6 +148,14 @@ Los enemigos y aliados actúan según atributos, trasfondo y moral:
 - Puedes referenciar personajes existentes por nombre o ID
 - El estado del mundo incluye ubicación actual, encuentros activos, etc.
 - Usa la información de la campaña para mantener coherencia narrativa
+
+## GENERACIÓN DE PERSONAJES POR IA:
+- Puedes generar personajes NPC (compañeros o villanos) cuando sea narrativamente apropiado
+- Para generar un compañero: "Generar compañero [clase opcional] [alineamiento opcional]"
+- Para generar un villano: "Generar villano [clase opcional] [alineamiento opcional]"
+- Los personajes se generan con personalidades basadas en su alineamiento y trasfondo
+- Los personajes generados se guardan automáticamente en la carpeta correspondiente
+- Usa estos personajes para enriquecer la narrativa y crear encuentros más dinámicos
 
 `
 
@@ -411,6 +457,9 @@ async function getCampaignState(campaignId) {
   };
 }
 
+// Importar el generador de personajes de IA
+import aiCharacterGenerator from './aiCharacterGenerator.js';
+
 // Prompt para el asistente
 const ASSISTANT_PROMPT = `Eres un asistente experto en D&D 5e. Tu trabajo es:
 
@@ -431,6 +480,50 @@ Reglas importantes:
 
 export const sendMessageToDM = async (message, gameState, campaignId = null, gameOptions = {}) => {
   try {
+    // Obtener la API key del usuario
+    const apiKey = await getApiKey();
+    if (!apiKey) {
+      return `❌ Error: No se ha configurado la API key de OpenAI.
+
+Para usar la IA del juego, necesitas:
+1. Ir a las opciones del juego (⚙️)
+2. Configurar tu API key de OpenAI
+3. Obtener una key gratuita en https://platform.openai.com/api-keys
+
+Sin la API key, la IA no puede funcionar.`;
+    }
+
+    // Verificar si el mensaje es una solicitud de generación de personaje
+    const characterGenerationMatch = message.match(/^generar\s+(compañero|villano)(?:\s+(\w+))?(?:\s+([^,]+))?$/i);
+    
+    if (characterGenerationMatch && campaignId) {
+      const role = characterGenerationMatch[1].toLowerCase();
+      const classType = characterGenerationMatch[2] || null;
+      const alignment = characterGenerationMatch[3] || null;
+      
+      try {
+        const character = await generateAICharacter(role, campaignId, alignment);
+        
+        let response = `🎭 **Personaje ${role === 'compañero' ? 'aliado' : 'antagonista'} generado exitosamente!**\n\n`;
+        response += `**Nombre:** ${character.name}\n`;
+        response += `**Clase:** ${character.class}\n`;
+        response += `**Raza:** ${character.race}\n`;
+        response += `**Alineamiento:** ${character.alignment}\n`;
+        response += `**Trasfondo:** ${character.background}\n\n`;
+        response += `**Personalidad:**\n`;
+        response += `- Rasgo: ${character.personalityTrait}\n`;
+        response += `- Ideal: ${character.ideal}\n`;
+        response += `- Vínculo: ${character.bond}\n`;
+        response += `- Defecto: ${character.flaw}\n\n`;
+        response += `**Historia:** ${character.backstory}\n\n`;
+        response += `El personaje ha sido guardado automáticamente en la carpeta de ${role === 'compañero' ? 'compañeros' : 'villanos'} de la campaña.`;
+        
+        return response;
+      } catch (error) {
+        return `❌ Error generando personaje: ${error.message}`;
+      }
+    }
+
     // Obtener estado completo de la campaña si hay una activa
     let campaignState = null;
     if (campaignId) {
@@ -454,7 +547,7 @@ export const sendMessageToDM = async (message, gameState, campaignId = null, gam
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
         model: 'gpt-4',
@@ -497,6 +590,19 @@ Mientras tanto, puedes:
 
 export const sendMessageToAssistant = async (message, gameState, campaignId = null, gameOptions = {}) => {
   try {
+    // Obtener la API key del usuario
+    const apiKey = await getApiKey();
+    if (!apiKey) {
+      return `❌ Error: No se ha configurado la API key de OpenAI.
+
+Para usar el asistente de IA, necesitas:
+1. Ir a las opciones del juego (⚙️)
+2. Configurar tu API key de OpenAI
+3. Obtener una key gratuita en https://platform.openai.com/api-keys
+
+Sin la API key, el asistente no puede funcionar.`;
+    }
+
     // Obtener estado completo de la campaña si hay una activa
     let campaignState = null;
     if (campaignId) {
@@ -519,7 +625,7 @@ export const sendMessageToAssistant = async (message, gameState, campaignId = nu
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
         model: 'gpt-4',
@@ -587,11 +693,16 @@ export const rollDice = (diceNotation) => {
 // Función para validar API key
 export const validateAPIKey = async () => {
   try {
+    const apiKey = await getApiKey();
+    if (!apiKey) {
+      return false;
+    }
+
     const response = await fetch(OPENAI_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
         model: 'gpt-4',
@@ -651,4 +762,33 @@ export const generateGameOptionsSummary = (gameOptions) => {
   }
   
   return summaries.join(' | ');
+};
+
+// Función para verificar si la API key está configurada
+export const isApiKeyConfigured = async () => {
+  const apiKey = await getApiKey();
+  return apiKey && apiKey.startsWith('sk-');
+};
+
+// Función para generar personajes por IA
+export const generateAICharacter = async (role, campaignId, alignment = null) => {
+  try {
+    const character = aiCharacterGenerator.generateRandomCharacter(role, alignment);
+    await aiCharacterGenerator.saveAICharacter(character, campaignId);
+    return character;
+  } catch (error) {
+    console.error('Error generando personaje de IA:', error);
+    throw error;
+  }
+};
+
+// Función para generar múltiples personajes por IA
+export const generateMultipleAICharacters = async (count, role, campaignId, alignment = null) => {
+  try {
+    const characters = await aiCharacterGenerator.generateMultipleCharacters(count, role, campaignId, alignment);
+    return characters;
+  } catch (error) {
+    console.error('Error generando múltiples personajes de IA:', error);
+    throw error;
+  }
 };

@@ -8,7 +8,7 @@ import {
   isElectron 
 } from '../utils/fileSystemUtils';
 
-export default function CharacterManager({ characterData, onLoadCharacter }) {
+export default function CharacterManager({ characterData, onLoadCharacter, onStartGame }) {
   const [savedCharacters, setSavedCharacters] = useState([]);
   const [selectedCharacter, setSelectedCharacter] = useState(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -52,9 +52,18 @@ export default function CharacterManager({ characterData, onLoadCharacter }) {
     }
 
     try {
+      // Crear una copia del personaje con el estado de vida/muerte
+      const characterWithStatus = {
+        ...characterData,
+        status: {
+          alive: true,
+          lastUpdated: new Date().toISOString()
+        }
+      };
+
       if (useFileSystem) {
         // Usar sistema de archivos
-        const success = await saveCharacterToFile(characterData, saveName.trim());
+        const success = await saveCharacterToFile(characterWithStatus, saveName.trim());
         if (success) {
           await loadSavedCharacters(); // Recargar lista
           setSaveName('');
@@ -68,7 +77,7 @@ export default function CharacterManager({ characterData, onLoadCharacter }) {
          const characterToSave = {
            id: Date.now().toString(),
            name: saveName.trim(),
-           data: characterData,
+           data: characterWithStatus,
            savedAt: new Date().toISOString(),
            lastModified: new Date().toISOString()
          };
@@ -91,9 +100,18 @@ export default function CharacterManager({ characterData, onLoadCharacter }) {
   // Función para actualizar un personaje existente
   const updateCharacter = async (characterId) => {
     try {
+      // Crear una copia del personaje con el estado de vida/muerte
+      const characterWithStatus = {
+        ...characterData,
+        status: {
+          alive: true,
+          lastUpdated: new Date().toISOString()
+        }
+      };
+
       if (useFileSystem) {
         // Usar sistema de archivos
-        const success = await updateCharacterInFile(characterId, characterData);
+        const success = await updateCharacterInFile(characterId, characterWithStatus);
                  if (success) {
            await loadSavedCharacters(); // Recargar lista
            alert('Personaje actualizado exitosamente');
@@ -104,7 +122,7 @@ export default function CharacterManager({ characterData, onLoadCharacter }) {
          // Usar localStorage como fallback silencioso
          const characterToUpdate = {
            ...savedCharacters.find(c => c.id === characterId),
-           data: characterData,
+           data: characterWithStatus,
            lastModified: new Date().toISOString()
          };
 
@@ -421,6 +439,25 @@ export default function CharacterManager({ characterData, onLoadCharacter }) {
                         >
                           Cargar
                         </button>
+                        {onStartGame && (
+                          <button
+                            onClick={() => {
+                              onStartGame(character.data);
+                              setShowLoadDialog(false);
+                            }}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: '#9C27B0',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            🎮 Jugar
+                          </button>
+                        )}
                         <button
                           onClick={() => updateCharacter(character.id)}
                           style={{

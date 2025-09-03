@@ -232,6 +232,31 @@ export const backgroundData = {
     name: 'Salvaje',
     skills: ['Atletismo', 'Supervivencia'],
     equipment: ['Arma tribal', 'Trofeo de caza', 'Ropa de viajero', 'Dinero (10 po)']
+  },
+  asesino: {
+    name: 'Asesino',
+    skills: ['Sigilo', 'Engaño'],
+    equipment: ['Dagas (2)', 'Ropa oscura', 'Herramientas de ladrón', 'Veneno básico', 'Dinero (20 po)']
+  },
+  mercenario: {
+    name: 'Mercenario',
+    skills: ['Atletismo', 'Intimidación'],
+    equipment: ['Arma de guerra', 'Armadura de cuero', 'Dinero (30 po)', 'Contrato de trabajo']
+  },
+  cultista: {
+    name: 'Cultista',
+    skills: ['Religión', 'Engaño'],
+    equipment: ['Símbolo del culto', 'Vestiduras oscuras', 'Incienso', 'Dinero (15 po)']
+  },
+  guardia: {
+    name: 'Guardia',
+    skills: ['Percepción', 'Atletismo'],
+    equipment: ['Alabarda', 'Armadura de cuero', 'Insignia de guardia', 'Dinero (10 po)']
+  },
+  curandero: {
+    name: 'Curandero',
+    skills: ['Medicina', 'Perspicacia'],
+    equipment: ['Kit de medicina', 'Hierbas medicinales', 'Dinero (20 po)', 'Libro de remedios']
   }
 };
 
