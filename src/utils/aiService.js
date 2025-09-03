@@ -8,7 +8,7 @@ const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions'
 // No necesitamos importaciones web aquí
 
 // Prompt maestro detallado para el DM
-const DM_PROMPT = `Eres un Dungeon Master (DM) experto de D&D 5ª edición para una campaña en solitario. Sigue estrictamente estas reglas:
+const DM_PROMPT_BASE = `Eres un Dungeon Master (DM) experto de D&D 5ª edición para una campaña en solitario. Sigue estrictamente estas reglas:
 
 ## 0) PRINCIPIOS FUNDAMENTALES
 - **Fidelidad 5e (RAW)**: Combate, habilidades, descansos, condiciones, muerte según reglas oficiales
@@ -111,8 +111,292 @@ Los enemigos y aliados actúan según atributos, trasfondo y moral:
 - El estado del mundo incluye ubicación actual, encuentros activos, etc.
 - Usa la información de la campaña para mantener coherencia narrativa
 
-Estado actual del juego:
 `
+
+// Función para generar modificadores de prompt basados en las opciones
+const generatePromptModifiers = (gameOptions = {}) => {
+  let modifiers = '';
+  
+  // Modificadores por clasificación de contenido
+  switch (gameOptions.contentRating) {
+    case 'Family':
+      modifiers += '## TONO Y SEGURIDAD: PEGI 7 - Contenido familiar\n';
+      modifiers += '- Violencia mínima, sin descripciones gráficas\n';
+      modifiers += '- Enfoque en aventura y descubrimiento\n';
+      modifiers += '- PNJs amigables y cooperativos\n';
+      modifiers += '- Evita temas maduros o complejos\n\n';
+      break;
+    case 'PG-13':
+      modifiers += '## TONO Y SEGURIDAD: PEGI 13 - Adolescente\n';
+      modifiers += '- Violencia moderada, evita gore innecesario\n';
+      modifiers += '- Contenido apropiado para adolescentes\n';
+      modifiers += '- Moral gris pero accesible\n';
+      modifiers += '- Nivel descriptivo moderado\n\n';
+      break;
+    case 'PG-16':
+      modifiers += '## TONO Y SEGURIDAD: PEGI 16 - Maduro\n';
+      modifiers += '- Violencia moderada, contenido maduro permitido\n';
+      modifiers += '- Temas complejos y decisiones difíciles\n';
+      modifiers += '- Moral ambigua y consecuencias reales\n';
+      modifiers += '- Descripciones más detalladas\n\n';
+      break;
+    case 'PG-18':
+      modifiers += '## TONO Y SEGURIDAD: PEGI 18 - Adulto\n';
+      modifiers += '- Contenido adulto, violencia gráfica permitida\n';
+      modifiers += '- Temas maduros y complejos\n';
+      modifiers += '- Moral muy gris y consecuencias severas\n';
+      modifiers += '- Descripciones detalladas y realistas\n\n';
+      break;
+  }
+
+  // Modificadores por nivel de violencia
+  switch (gameOptions.violenceLevel) {
+    case 'minimal':
+      modifiers += '## VIOLENCIA: Mínima\n';
+      modifiers += '- Combate sin descripciones gráficas\n';
+      modifiers += '- Enfoque en resolución pacífica\n';
+      modifiers += '- Consecuencias no letales cuando sea posible\n\n';
+      break;
+    case 'moderate':
+      modifiers += '## VIOLENCIA: Moderada\n';
+      modifiers += '- Combate realista sin excesos\n';
+      modifiers += '- Descripciones apropiadas para la edad\n';
+      modifiers += '- Consecuencias reales pero no excesivas\n\n';
+      break;
+    case 'intense':
+      modifiers += '## VIOLENCIA: Intensa\n';
+      modifiers += '- Combate detallado y realista\n';
+      modifiers += '- Descripciones vívidas de batalla\n';
+      modifiers += '- Consecuencias severas y permanentes\n\n';
+      break;
+    case 'graphic':
+      modifiers += '## VIOLENCIA: Gráfica\n';
+      modifiers += '- Combate muy detallado y visceral\n';
+      modifiers += '- Descripciones explícitas de daño\n';
+      modifiers += '- Consecuencias extremas y traumáticas\n\n';
+      break;
+  }
+
+  // Modificadores por estilo de mundo
+  switch (gameOptions.worldStyle) {
+    case 'medieval':
+      modifiers += '## MUNDO: Medieval\n';
+      modifiers += '- Era medieval cruda (sin pólvora/tecnología moderna)\n';
+      modifiers += '- Sociedad feudal y jerárquica\n';
+      modifiers += '- Tecnología básica y artesanal\n\n';
+      break;
+    case 'renaissance':
+      modifiers += '## MUNDO: Renacimiento\n';
+      modifiers += '- Renacimiento temprano con pólvora básica\n';
+      modifiers += '- Sociedad en transición\n';
+      modifiers += '- Tecnología emergente\n\n';
+      break;
+    case 'steampunk':
+      modifiers += '## MUNDO: Steampunk\n';
+      modifiers += '- Tecnología de vapor y engranajes\n';
+      modifiers += '- Sociedad industrial temprana\n';
+      modifiers += '- Magia y tecnología combinadas\n\n';
+      break;
+    case 'modern':
+      modifiers += '## MUNDO: Moderno\n';
+      modifiers += '- Época moderna con magia\n';
+      modifiers += '- Tecnología actual disponible\n';
+      modifiers += '- Sociedad contemporánea\n\n';
+      break;
+  }
+
+  // Modificadores por dificultad
+  switch (gameOptions.difficulty) {
+    case 'easy':
+      modifiers += '## DIFICULTAD: Fácil\n';
+      modifiers += '- CD más bajas (8-12 para tareas normales)\n';
+      modifiers += '- Enemigos más débiles y menos inteligentes\n';
+      modifiers += '- Más oportunidades de recuperación\n';
+      modifiers += '- Éxito parcial más generoso\n\n';
+      break;
+    case 'normal':
+      modifiers += '## DIFICULTAD: Normal\n';
+      modifiers += '- CD estándar según reglas (10-15 para tareas normales)\n';
+      modifiers += '- Enemigos con inteligencia estándar\n';
+      modifiers += '- Consecuencias balanceadas\n\n';
+      break;
+    case 'hard':
+      modifiers += '## DIFICULTAD: Difícil\n';
+      modifiers += '- CD más altas (12-18 para tareas normales)\n';
+      modifiers += '- Enemigos más inteligentes y tácticos\n';
+      modifiers += '- Consecuencias más severas\n';
+      modifiers += '- Menos oportunidades de recuperación\n\n';
+      break;
+    case 'brutal':
+      modifiers += '## DIFICULTAD: Brutal\n';
+      modifiers += '- CD muy altas (15-25 para tareas normales)\n';
+      modifiers += '- Enemigos extremadamente tácticos\n';
+      modifiers += '- Consecuencias devastadoras\n';
+      modifiers += '- Muerte frecuente\n\n';
+      break;
+  }
+
+  // Modificadores por estilo de combate
+  switch (gameOptions.combatStyle) {
+    case 'cinematic':
+      modifiers += '## COMBATE: Cinemático\n';
+      modifiers += '- Acciones épicas y dramáticas\n';
+      modifiers += '- Descripciones cinematográficas\n';
+      modifiers += '- Énfasis en la narrativa sobre la táctica\n';
+      modifiers += '- Momentos heroicos frecuentes\n\n';
+      break;
+    case 'tactical':
+      modifiers += '## COMBATE: Táctico\n';
+      modifiers += '- Énfasis en posicionamiento y estrategia\n';
+      modifiers += '- Uso inteligente del terreno\n';
+      modifiers += '- Coordinación entre enemigos\n';
+      modifiers += '- Consecuencias tácticas reales\n\n';
+      break;
+    case 'realistic':
+      modifiers += '## COMBATE: Realista\n';
+      modifiers += '- Consecuencias reales y peligrosas\n';
+      modifiers += '- Daño permanente frecuente\n';
+      modifiers += '- Enemigos que huyen cuando es inteligente\n';
+      modifiers += '- Efectos de heridas a largo plazo\n\n';
+      break;
+    case 'fast':
+      modifiers += '## COMBATE: Rápido\n';
+      modifiers += '- Combates dinámicos y fluidos\n';
+      modifiers += '- Menos descripciones, más acción\n';
+      modifiers += '- Resolución rápida de turnos\n';
+      modifiers += '- Enfoque en la velocidad\n\n';
+      break;
+  }
+
+  // Modificadores por nivel de magia
+  switch (gameOptions.magicLevel) {
+    case 'low':
+      modifiers += '## MAGIA: Baja\n';
+      modifiers += '- Magia rara y misteriosa\n';
+      modifiers += '- Conjuros limitados y costosos\n';
+      modifiers += '- Reacciones de miedo/sospecha hacia magos\n';
+      modifiers += '- Enfoque en habilidades mundanas\n\n';
+      break;
+    case 'standard':
+      modifiers += '## MAGIA: Estándar\n';
+      modifiers += '- Magia común pero respetada\n';
+      modifiers += '- Conjuros según reglas estándar\n';
+      modifiers += '- Aceptación social de magos\n\n';
+      break;
+    case 'high':
+      modifiers += '## MAGIA: Alta\n';
+      modifiers += '- Magia abundante y poderosa\n';
+      modifiers += '- Conjuros mejorados y variados\n';
+      modifiers += '- Sociedad adaptada a la magia\n';
+      modifiers += '- Soluciones mágicas frecuentes\n\n';
+      break;
+    case 'epic':
+      modifiers += '## MAGIA: Épica\n';
+      modifiers += '- Magia legendaria y transformadora\n';
+      modifiers += '- Conjuros de poder increíble\n';
+      modifiers += '- Mundo moldeado por la magia\n';
+      modifiers += '- Efectos mágicos permanentes\n\n';
+      break;
+  }
+
+  // Modificadores por estilo de exploración
+  switch (gameOptions.explorationStyle) {
+    case 'simple':
+      modifiers += '## EXPLORACIÓN: Simple\n';
+      modifiers += '- Encuentros directos y claros\n';
+      modifiers += '- Pistas obvias y fáciles de seguir\n';
+      modifiers += '- Menos detalles ambientales\n';
+      modifiers += '- Navegación sencilla\n\n';
+      break;
+    case 'detailed':
+      modifiers += '## EXPLORACIÓN: Detallada\n';
+      modifiers += '- Descripciones ricas del entorno\n';
+      modifiers += '- Pistas sutiles pero descubribles\n';
+      modifiers += '- Ambiente inmersivo\n';
+      modifiers += '- Múltiples rutas posibles\n\n';
+      break;
+    case 'immersive':
+      modifiers += '## EXPLORACIÓN: Inmersiva\n';
+      modifiers += '- Descripciones muy detalladas\n';
+      modifiers += '- Pistas muy sutiles y complejas\n';
+      modifiers += '- Ambiente altamente realista\n';
+      modifiers += '- Exploración como actividad principal\n\n';
+      break;
+    case 'survival':
+      modifiers += '## EXPLORACIÓN: Supervivencia\n';
+      modifiers += '- Énfasis en recursos y supervivencia\n';
+      modifiers += '- Peligros ambientales frecuentes\n';
+      modifiers += '- Gestión de suministros crítica\n';
+      modifiers += '- Exploración peligrosa y desafiante\n\n';
+      break;
+  }
+
+  // Modificadores por estilo de rol
+  switch (gameOptions.roleplayStyle) {
+    case 'minimal':
+      modifiers += '## ROL: Mínimo\n';
+      modifiers += '- Enfoque en combate y aventura\n';
+      modifiers += '- PNJs simples y directos\n';
+      modifiers += '- Diálogos breves y funcionales\n';
+      modifiers += '- Menos desarrollo de personajes\n\n';
+      break;
+    case 'balanced':
+      modifiers += '## ROL: Equilibrado\n';
+      modifiers += '- Balance entre acción y rol\n';
+      modifiers += '- PNJs con personalidades definidas\n';
+      modifiers += '- Diálogos naturales y significativos\n';
+      modifiers += '- Desarrollo de personajes moderado\n\n';
+      break;
+    case 'heavy':
+      modifiers += '## ROL: Pesado\n';
+      modifiers += '- Énfasis en desarrollo de personajes\n';
+      modifiers += '- PNJs complejos y memorables\n';
+      modifiers += '- Diálogos extensos y significativos\n';
+      modifiers += '- Arcos narrativos profundos\n\n';
+      break;
+    case 'theatrical':
+      modifiers += '## ROL: Teatral\n';
+      modifiers += '- Enfoque dramático y emocional\n';
+      modifiers += '- PNJs muy expresivos y memorables\n';
+      modifiers += '- Diálogos dramáticos y emotivos\n';
+      modifiers += '- Momentos cinematográficos frecuentes\n\n';
+      break;
+  }
+
+  // Modificadores por complejidad de IA
+  switch (gameOptions.aiStyle) {
+    case 'simple':
+      modifiers += '## IA: Simple\n';
+      modifiers += '- PNJs con motivaciones básicas\n';
+      modifiers += '- Enemigos con tácticas simples\n';
+      modifiers += '- Situaciones directas y claras\n';
+      modifiers += '- Menos complejidad narrativa\n\n';
+      break;
+    case 'balanced':
+      modifiers += '## IA: Equilibrada\n';
+      modifiers += '- PNJs con personalidades coherentes\n';
+      modifiers += '- Enemigos con tácticas inteligentes\n';
+      modifiers += '- Situaciones con múltiples capas\n';
+      modifiers += '- Complejidad narrativa moderada\n\n';
+      break;
+    case 'complex':
+      modifiers += '## IA: Compleja\n';
+      modifiers += '- PNJs con psicologías complejas\n';
+      modifiers += '- Enemigos muy tácticos y adaptativos\n';
+      modifiers += '- Situaciones con múltiples interpretaciones\n';
+      modifiers += '- Alta complejidad narrativa\n\n';
+      break;
+    case 'mastermind':
+      modifiers += '## IA: Maestra\n';
+      modifiers += '- PNJs con psicologías muy complejas\n';
+      modifiers += '- Enemigos geniales y manipuladores\n';
+      modifiers += '- Situaciones con capas de engaño\n';
+      modifiers += '- Máxima complejidad narrativa\n\n';
+      break;
+  }
+
+  return modifiers;
+};
 
 // Función para obtener el estado completo de la campaña
 // En aplicaciones de escritorio, esto se maneja directamente desde el componente principal
@@ -145,7 +429,7 @@ Reglas importantes:
 
 `
 
-export const sendMessageToDM = async (message, gameState, campaignId = null) => {
+export const sendMessageToDM = async (message, gameState, campaignId = null, gameOptions = {}) => {
   try {
     // Obtener estado completo de la campaña si hay una activa
     let campaignState = null;
@@ -159,7 +443,12 @@ export const sendMessageToDM = async (message, gameState, campaignId = null) => 
       campaign: campaignState
     };
     
-    const systemPrompt = DM_PROMPT + JSON.stringify(fullGameState, null, 2)
+    // Generar modificadores de prompt basados en las opciones
+    const promptModifiers = generatePromptModifiers(gameOptions);
+    
+    // Combinar el prompt base con los modificadores
+    const systemPrompt = DM_PROMPT_BASE + promptModifiers + 
+      `Estado actual del juego:\n${JSON.stringify(fullGameState, null, 2)}`;
     
     const response = await fetch(OPENAI_API_URL, {
       method: 'POST',
@@ -206,7 +495,7 @@ Mientras tanto, puedes:
   }
 }
 
-export const sendMessageToAssistant = async (message, gameState, campaignId = null) => {
+export const sendMessageToAssistant = async (message, gameState, campaignId = null, gameOptions = {}) => {
   try {
     // Obtener estado completo de la campaña si hay una activa
     let campaignState = null;
@@ -220,7 +509,10 @@ export const sendMessageToAssistant = async (message, gameState, campaignId = nu
       campaign: campaignState
     };
     
-    const systemPrompt = ASSISTANT_PROMPT + 
+    // Generar modificadores de prompt basados en las opciones
+    const promptModifiers = generatePromptModifiers(gameOptions);
+    
+    const systemPrompt = ASSISTANT_PROMPT + promptModifiers + 
       (fullGameState ? `\nEstado actual del juego:\n${JSON.stringify(fullGameState, null, 2)}` : '')
 
     const response = await fetch(OPENAI_API_URL, {
@@ -325,3 +617,38 @@ export const getCharacterInfo = async (campaignId, characterId) => {
   console.log('Obteniendo información del personaje:', { campaignId, characterId });
   return null;
 }
+
+// Función para generar un resumen de las opciones de juego
+export const generateGameOptionsSummary = (gameOptions) => {
+  const summaries = [];
+  
+  if (gameOptions.contentRating) {
+    summaries.push(`🎭 ${gameOptions.contentRating}`);
+  }
+  if (gameOptions.violenceLevel) {
+    summaries.push(`⚔️ ${gameOptions.violenceLevel}`);
+  }
+  if (gameOptions.worldStyle) {
+    summaries.push(`🌍 ${gameOptions.worldStyle}`);
+  }
+  if (gameOptions.difficulty) {
+    summaries.push(`📊 ${gameOptions.difficulty}`);
+  }
+  if (gameOptions.combatStyle) {
+    summaries.push(`⚔️ ${gameOptions.combatStyle}`);
+  }
+  if (gameOptions.magicLevel) {
+    summaries.push(`🔮 ${gameOptions.magicLevel}`);
+  }
+  if (gameOptions.explorationStyle) {
+    summaries.push(`🗺️ ${gameOptions.explorationStyle}`);
+  }
+  if (gameOptions.roleplayStyle) {
+    summaries.push(`🎭 ${gameOptions.roleplayStyle}`);
+  }
+  if (gameOptions.aiStyle) {
+    summaries.push(`🤖 ${gameOptions.aiStyle}`);
+  }
+  
+  return summaries.join(' | ');
+};

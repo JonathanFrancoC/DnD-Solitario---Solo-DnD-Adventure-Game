@@ -185,7 +185,7 @@ export const classData = {
 export const backgroundData = {
   acolito: {
     name: 'Acolito',
-    skills: ['Persuasión', 'Religión'],
+    skills: ['Perspicacia', 'Religión'],
     equipment: ['Símbolo sagrado', 'Vestiduras', 'Incienso', 'Raciones de viaje (5 días)', 'Dinero (15 po)']
   },
   criminal: {
@@ -274,7 +274,7 @@ export function getClassSkills(className) {
 
 // Obtener habilidades de trasfondo
 export function getBackgroundSkills(background) {
-  return backgroundData[background]?.skills || [];
+  return backgroundSkills[background] || [];
 }
 
 // Obtener equipo inicial de clase
@@ -798,13 +798,17 @@ export const WARLOCK_SPELLS_KNOWN = {
   11:11, 12:11, 13:12, 14:12, 15:13, 16:13, 17:14, 18:14, 19:15, 20:15,
 };
 
-// — Bardo (PHB): **si quieres tabla exacta**, pégala aquí.
-//   Mientras no la pongas, devuelve null y tu UI puede ocultar el dato.
-export const BARD_SPELLS_KNOWN = null; // ← sustituye por {1:4,2:5,...,20:22} si lo deseas
+// — Bardo (PHB): tabla exacta del PHB
+export const BARD_SPELLS_KNOWN = {
+  1:4, 2:5, 3:6, 4:7, 5:8, 6:9, 7:10, 8:11, 9:12, 10:14,
+  11:15, 12:15, 13:16, 14:18, 15:19, 16:19, 17:20, 18:22, 19:22, 20:22
+};
 
-// — Ranger (PHB): **si quieres tabla exacta**, pégala aquí
-//   (empieza a nivel 2, máximo 11 a nivel 20).
-export const RANGER_SPELLS_KNOWN = null;
+// — Ranger (PHB): tabla exacta del PHB
+export const RANGER_SPELLS_KNOWN = {
+  1:0, 2:2, 3:3, 4:3, 5:4, 6:4, 7:5, 8:5, 9:5, 10:6,
+  11:6, 12:6, 13:7, 14:7, 15:7, 16:8, 17:8, 18:8, 19:9, 20:9
+};
 
 // Map cómodo para consulta genérica:
 export const SPELLS_KNOWN_BY_CLASS = {

@@ -9,6 +9,22 @@ export const isSpellcaster = (className) => {
   return spellcastingClasses.includes(className);
 };
 
+// Función para obtener la característica de lanzamiento de conjuros de una clase
+export const getSpellcastingAbility = (className) => {
+  const spellcastingAbilities = {
+    bardo: 'charisma',
+    clerigo: 'wisdom',
+    druida: 'wisdom',
+    hechicero: 'charisma',
+    mago: 'intelligence',
+    paladin: 'charisma',
+    ranger: 'wisdom',
+    brujo: 'charisma'
+  };
+  
+  return spellcastingAbilities[className] || 'intelligence';
+};
+
 // Función para obtener hechizos disponibles al subir de nivel
 export const getAvailableSpellsForLevelUp = (className, targetLevel) => {
   if (!isSpellcaster(className)) return [];

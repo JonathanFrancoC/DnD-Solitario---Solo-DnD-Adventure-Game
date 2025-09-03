@@ -1,0 +1,454 @@
+{
+  "feats": {
+    "alert": {
+      "name": "Alerta",
+      "description": "Siempre vigilante y listo para el peligro",
+      "prerequisites": [],
+      "benefits": [
+        "No puedes ser sorprendido mientras estés consciente",
+        "Otros no ganan ventaja en ataques contra ti por estar ocultos",
+        "+5 a tu iniciativa"
+      ],
+      "category": "combat"
+    },
+    "athlete": {
+      "name": "Atleta",
+      "description": "Has desarrollado tus habilidades atléticas",
+      "prerequisites": [],
+      "benefits": [
+        "Aumenta tu Fuerza o Destreza en 1, hasta un máximo de 20",
+        "Puedes escalar sin gastar movimiento extra",
+        "Puedes hacer un salto largo o alto después de moverte solo 5 pies, en lugar de 10"
+      ],
+      "category": "physical"
+    },
+    "actor": {
+      "name": "Actor",
+      "description": "Eres hábil en el arte del drama",
+      "prerequisites": [],
+      "benefits": [
+        "Aumenta tu Carisma en 1, hasta un máximo de 20",
+        "Tienes ventaja en tiradas de Engaño e Interpretación cuando intentas pasar por otra persona",
+        "Puedes imitar el habla de otra persona o los sonidos que hace"
+      ],
+      "category": "social"
+    },
+    "charger": {
+      "name": "Cargador",
+      "description": "Eres experto en cargar contra tus enemigos",
+      "prerequisites": [],
+      "benefits": [
+        "Cuando usas tu acción para Correr, puedes usar una acción bonus para hacer un ataque con arma cuerpo a cuerpo o empujar a una criatura",
+        "Si mueves al menos 10 pies en línea recta inmediatamente antes de hacer esta acción bonus, ganas +5 al daño del ataque o empujas al objetivo 10 pies"
+      ],
+      "category": "combat"
+    },
+    "crossbow_expert": {
+      "name": "Experto en Ballesta",
+      "description": "Eres un maestro en el uso de ballestas",
+      "prerequisites": [],
+      "benefits": [
+        "No tienes desventaja en ataques cuerpo a cuerpo con ballesta",
+        "Cuando usas la acción Ataque y atacas con una ballesta de mano, puedes usar una acción bonus para atacar con una ballesta de mano diferente",
+        "Puedes cargar una ballesta de mano sin usar una acción"
+      ],
+      "category": "combat"
+    },
+    "defensive_duelist": {
+      "name": "Duelista Defensivo",
+      "description": "Eres experto en usar armas ligeras para defenderte",
+      "prerequisites": ["Destreza 13 o superior"],
+      "benefits": [
+        "Cuando eres atacado por una criatura que puedes ver, puedes usar tu reacción para añadir tu modificador de Destreza a tu CA contra ese ataque"
+      ],
+      "category": "combat"
+    },
+    "dual_wielder": {
+      "name": "Dos Armas",
+      "description": "Eres experto en luchar con dos armas",
+      "prerequisites": [],
+      "benefits": [
+        "Ganas +1 a tu CA mientras empuñas un arma cuerpo a cuerpo separada en cada mano",
+        "Puedes usar dos armas cuerpo a cuerpo incluso si una no es ligera",
+        "Puedes empuñar o desenvainar dos armas cuerpo a cuerpo cuando normalmente solo podrías empuñar o desenvainar una"
+      ],
+      "category": "combat"
+    },
+    "dungeon_delver": {
+      "name": "Explorador de Mazmorras",
+      "description": "Eres experto en explorar mazmorras y ruinas",
+      "prerequisites": [],
+      "benefits": [
+        "Tienes ventaja en tiradas de Percepción e Investigación para detectar secretos",
+        "Tienes ventaja en tiradas de salvación contra trampas",
+        "Resistencia al daño de trampas",
+        "Puedes buscar trampas mientras te mueves a velocidad normal"
+      ],
+      "category": "exploration"
+    },
+    "durable": {
+      "name": "Resistente",
+      "description": "Eres excepcionalmente resistente",
+      "prerequisites": [],
+      "benefits": [
+        "Aumenta tu Constitución en 1, hasta un máximo de 20",
+        "Cuando tiras un dado de golpe para recuperar puntos de vida, puedes rerollar el dado si sale 1 o 2"
+      ],
+      "category": "physical"
+    },
+    "elemental_adept": {
+      "name": "Adepto Elemental",
+      "description": "Eres experto en magia de un tipo elemental específico",
+      "prerequisites": ["Capacidad de lanzar al menos un hechizo"],
+      "benefits": [
+        "Elige un tipo de daño: ácido, frío, fuego, eléctrico o trueno",
+        "Los hechizos que lances ignoran la resistencia a ese tipo de daño",
+        "Cuando lanzas un hechizo que causa ese tipo de daño, puedes tratar cualquier 1 en un dado de daño como un 2"
+      ],
+      "category": "magical"
+    },
+    "grappler": {
+      "name": "Luchador",
+      "description": "Eres experto en agarrar y sujetar enemigos",
+      "prerequisites": ["Fuerza 13 o superior"],
+      "benefits": [
+        "Tienes ventaja en ataques contra criaturas que estás agarrando",
+        "Puedes usar tu acción para intentar agarrar a una criatura de tamaño Grande o menor",
+        "Puedes usar tu acción para intentar inmovilizar a una criatura que ya estás agarrando"
+      ],
+      "category": "combat"
+    },
+    "great_weapon_master": {
+      "name": "Maestro de Armas Grandes",
+      "description": "Eres experto en usar armas de dos manos",
+      "prerequisites": [],
+      "benefits": [
+        "En tu turno, cuando obtienes un crítico con un arma cuerpo a cuerpo o reduces a 0 los puntos de vida de una criatura, puedes hacer un ataque cuerpo a cuerpo como acción bonus",
+        "Antes de hacer un ataque cuerpo a cuerpo con un arma que empuñas con dos manos, puedes elegir tomar -5 al ataque. Si el ataque impacta, añades +10 al daño"
+      ],
+      "category": "combat"
+    },
+    "healer": {
+      "name": "Sanador",
+      "description": "Eres un sanador experto",
+      "prerequisites": [],
+      "benefits": [
+        "Cuando usas un kit de sanador para estabilizar a una criatura moribunda, esa criatura también recupera 1 punto de vida",
+        "Como acción, puedes gastar un uso de un kit de sanador para restaurar 1d6 + 4 puntos de vida a una criatura"
+      ],
+      "category": "support"
+    },
+    "heavily_armored": {
+      "name": "Armadura Pesada",
+      "description": "Eres experto en usar armadura pesada",
+      "prerequisites": ["Proficiencia con armadura mediana"],
+      "benefits": [
+        "Ganas proficiencia con armadura pesada"
+      ],
+      "category": "combat"
+    },
+    "heavy_armor_master": {
+      "name": "Maestro de Armadura Pesada",
+      "description": "Eres experto en usar armadura pesada",
+      "prerequisites": ["Proficiencia con armadura pesada"],
+      "benefits": [
+        "Aumenta tu Fuerza en 1, hasta un máximo de 20",
+        "Mientras llevas armadura pesada, el daño no mágico que recibes se reduce en 3"
+      ],
+      "category": "combat"
+    },
+    "inspiring_leader": {
+      "name": "Líder Inspirador",
+      "description": "Eres capaz de inspirar a otros",
+      "prerequisites": ["Carisma 13 o superior"],
+      "benefits": [
+        "Puedes gastar 10 minutos inspirando a tus compañeros, restaurando puntos de vida temporales iguales a tu nivel + tu modificador de Carisma"
+      ],
+      "category": "support"
+    },
+    "keen_mind": {
+      "name": "Mente Aguda",
+      "description": "Tienes una mente excepcionalmente aguda",
+      "prerequisites": [],
+      "benefits": [
+        "Aumenta tu Inteligencia en 1, hasta un máximo de 20",
+        "Puedes recordar cualquier cosa que hayas visto u oído en el último mes",
+        "Puedes decir la hora exacta sin haber visto el sol o las estrellas"
+      ],
+      "category": "mental"
+    },
+    "lightly_armored": {
+      "name": "Armadura Ligera",
+      "description": "Eres experto en usar armadura ligera",
+      "prerequisites": [],
+      "benefits": [
+        "Ganas proficiencia con armadura ligera"
+      ],
+      "category": "combat"
+    },
+    "linguist": {
+      "name": "Lingüista",
+      "description": "Eres experto en idiomas",
+      "prerequisites": ["Inteligencia 13 o superior"],
+      "benefits": [
+        "Aumenta tu Inteligencia en 1, hasta un máximo de 20",
+        "Aprendes tres idiomas de tu elección",
+        "Puedes crear mensajes codificados"
+      ],
+      "category": "social"
+    },
+    "lucky": {
+      "name": "Suerte",
+      "description": "Tienes una suerte excepcional",
+      "prerequisites": [],
+      "benefits": [
+        "Tienes 3 puntos de suerte. Cuando haces una tirada de ataque, habilidad o salvación, puedes gastar un punto de suerte para rerollar el dado",
+        "Puedes elegir cuál de los dos resultados usar"
+      ],
+      "category": "general"
+    },
+    "mage_slayer": {
+      "name": "Cazador de Magos",
+      "description": "Eres experto en luchar contra lanzadores de conjuros",
+      "prerequisites": [],
+      "benefits": [
+        "Cuando una criatura a 5 pies de ti lanza un hechizo, puedes usar tu reacción para hacer un ataque cuerpo a cuerpo contra esa criatura",
+        "Cuando dañas a una criatura que está concentrándose en un hechizo, esa criatura tiene desventaja en la tirada de salvación para mantener la concentración",
+        "Tienes ventaja en tiradas de salvación contra hechizos lanzados por criaturas a 5 pies de ti"
+      ],
+      "category": "combat"
+    },
+    "magic_initiate": {
+      "name": "Iniciado Mágico",
+      "description": "Aprendiste algunos trucos de una clase mágica",
+      "prerequisites": [],
+      "benefits": [
+        "Elige una clase: bardo, clérigo, druida, hechicero, brujo o mago",
+        "Aprendes dos trucos de tu elección de esa lista de hechizos",
+        "Aprendes un hechizo de 1er nivel de esa misma lista",
+        "Puedes lanzar ese hechizo una vez sin gastar un espacio de conjuro"
+      ],
+      "category": "magical"
+    },
+    "martial_adept": {
+      "name": "Adepto Marcial",
+      "description": "Aprendiste técnicas de combate especializadas",
+      "prerequisites": [],
+      "benefits": [
+        "Aprendes dos maniobras de tu elección de entre las disponibles para el Maestro de Batalla",
+        "Si no tienes dados de superioridad, ganas uno de d6",
+        "Si ya tienes dados de superioridad, ganas uno adicional"
+      ],
+      "category": "combat"
+    },
+    "medium_armor_master": {
+      "name": "Maestro de Armadura Mediana",
+      "description": "Eres experto en usar armadura mediana",
+      "prerequisites": ["Proficiencia con armadura mediana"],
+      "benefits": [
+        "Mientras llevas armadura mediana, no tienes desventaja en tiradas de Sigilo",
+        "Cuando llevas armadura mediana, puedes añadir 3, en lugar de 2, a tu CA si tienes un modificador de Destreza de +2 o superior"
+      ],
+      "category": "combat"
+    },
+    "mobile": {
+      "name": "Móvil",
+      "description": "Eres excepcionalmente rápido y ágil",
+      "prerequisites": [],
+      "benefits": [
+        "Tu velocidad aumenta en 10 pies",
+        "Cuando usas la acción Correr, el terreno difícil no cuesta movimiento extra",
+        "Cuando haces un ataque cuerpo a cuerpo contra una criatura, no provoca ataques de oportunidad de esa criatura por el resto del turno"
+      ],
+      "category": "physical"
+    },
+    "moderately_armored": {
+      "name": "Armadura Moderada",
+      "description": "Eres experto en usar armadura mediana",
+      "prerequisites": ["Proficiencia con armadura ligera"],
+      "benefits": [
+        "Ganas proficiencia con armadura mediana y escudos"
+      ],
+      "category": "combat"
+    },
+    "mounted_combatant": {
+      "name": "Combatiente Montado",
+      "description": "Eres experto en luchar montado",
+      "prerequisites": [],
+      "benefits": [
+        "Mientras estés montado y tu montura no esté incapacitada, tienes ventaja en ataques cuerpo a cuerpo contra criaturas más pequeñas que tu montura",
+        "Puedes forzar un ataque dirigido contra tu montura para que te ataque a ti en su lugar",
+        "Si tu montura es derribada, puedes saltar de ella como reacción"
+      ],
+      "category": "combat"
+    },
+    "observant": {
+      "name": "Observador",
+      "description": "Eres excepcionalmente observador",
+      "prerequisites": [],
+      "benefits": [
+        "Aumenta tu Inteligencia o Sabiduría en 1, hasta un máximo de 20",
+        "Puedes leer los labios de una criatura que puedas ver dentro de 30 pies de ti",
+        "Si puedes ver la boca de la criatura mientras habla, entiendes lo que dice"
+      ],
+      "category": "mental"
+    },
+    "polearm_master": {
+      "name": "Maestro de Armas de Asta",
+      "description": "Eres experto en usar armas de asta",
+      "prerequisites": [],
+      "benefits": [
+        "Cuando atacas con un arma de asta, puedes usar una acción bonus para hacer un ataque cuerpo a cuerpo con el extremo opuesto",
+        "Mientras empuñas un arma de asta, otras criaturas provocan ataques de oportunidad cuando entran en tu alcance"
+      ],
+      "category": "combat"
+    },
+    "resilient": {
+      "name": "Resistente",
+      "description": "Eres excepcionalmente resistente",
+      "prerequisites": [],
+      "benefits": [
+        "Elige una característica. Ganas proficiencia en tiradas de salvación de esa característica",
+        "Aumenta esa característica en 1, hasta un máximo de 20"
+      ],
+      "category": "general"
+    },
+    "ritual_caster": {
+      "name": "Lanzador de Rituales",
+      "description": "Aprendiste a lanzar hechizos como rituales",
+      "prerequisites": ["Inteligencia o Sabiduría 13 o superior"],
+      "benefits": [
+        "Elige una clase: bardo, clérigo, druida, hechicero, brujo o mago",
+        "Aprendes dos hechizos de 1er nivel de esa lista que tengan el ritual",
+        "Puedes lanzar esos hechizos como rituales"
+      ],
+      "category": "magical"
+    },
+    "savage_attacker": {
+      "name": "Atacante Salvaje",
+      "description": "Eres experto en causar daño devastador",
+      "prerequisites": [],
+      "benefits": [
+        "Una vez por turno cuando hagas un ataque cuerpo a cuerpo con un arma, puedes rerollar los dados de daño del arma y usar cualquiera de los dos resultados"
+      ],
+      "category": "combat"
+    },
+    "sentinel": {
+      "name": "Centinela",
+      "description": "Eres experto en proteger a otros",
+      "prerequisites": [],
+      "benefits": [
+        "Cuando haces un ataque de oportunidad, puedes usar una acción bonus para hacer un ataque cuerpo a cuerpo",
+        "Las criaturas dentro de tu alcance provocan ataques de oportunidad incluso si toman la acción Retirarse",
+        "Cuando una criatura dentro de 5 pies de ti hace un ataque contra un objetivo que no eres tú, puedes usar tu reacción para hacer un ataque cuerpo a cuerpo contra la criatura atacante"
+      ],
+      "category": "combat"
+    },
+    "sharpshooter": {
+      "name": "Tirador Certero",
+      "description": "Eres experto en hacer ataques a distancia",
+      "prerequisites": [],
+      "benefits": [
+        "No tienes desventaja en ataques a distancia por estar a largo alcance",
+        "Tu ataque a distancia ignora la cobertura parcial y tres cuartos",
+        "Antes de hacer un ataque a distancia, puedes elegir tomar -5 al ataque. Si el ataque impacta, añades +10 al daño"
+      ],
+      "category": "combat"
+    },
+    "shield_master": {
+      "name": "Maestro de Escudo",
+      "description": "Eres experto en usar escudos",
+      "prerequisites": [],
+      "benefits": [
+        "Puedes usar un escudo como acción bonus para intentar derribar a una criatura",
+        "Si no eres incapacitado, puedes añadir el bonus de tu escudo a una tirada de salvación de Destreza contra un efecto que solo te afecte a ti",
+        "Si eres forzado a hacer una tirada de salvación de Destreza contra un efecto que solo te afecte a ti, puedes usar tu reacción para tomar solo el daño si fallas la tirada"
+      ],
+      "category": "combat"
+    },
+    "skilled": {
+      "name": "Hábil",
+      "description": "Eres excepcionalmente hábil",
+      "prerequisites": [],
+      "benefits": [
+        "Ganas proficiencia en cualquier combinación de tres habilidades o herramientas de tu elección"
+      ],
+      "category": "general"
+    },
+    "skulker": {
+      "name": "Sigiloso",
+      "description": "Eres experto en moverse sin ser visto",
+      "prerequisites": ["Destreza 13 o superior"],
+      "benefits": [
+        "Puedes intentar esconderte cuando estás ligeramente oculto de una criatura",
+        "Cuando estás oculto de una criatura y fallas un ataque, la criatura no nota automáticamente tu posición",
+        "No tienes desventaja en tiradas de Percepción por luz tenue"
+      ],
+      "category": "stealth"
+    },
+    "spell_sniper": {
+      "name": "Francotirador de Conjuros",
+      "description": "Eres experto en lanzar hechizos a distancia",
+      "prerequisites": ["Capacidad de lanzar al menos un hechizo"],
+      "benefits": [
+        "Cuando lanzas un hechizo que requiere un ataque, duplicas su alcance",
+        "Tu ataque con hechizos ignora la cobertura parcial y tres cuartos",
+        "Aprendes un truco que requiere un ataque de una clase de tu elección"
+      ],
+      "category": "magical"
+    },
+    "tavern_brawler": {
+      "name": "Peleador de Taberna",
+      "description": "Eres experto en peleas improvisadas",
+      "prerequisites": [],
+      "benefits": [
+        "Aumenta tu Fuerza o Constitución en 1, hasta un máximo de 20",
+        "Eres proficiente con armas improvisadas",
+        "Cuando golpeas a una criatura con un ataque cuerpo a cuerpo desarmado o con un arma improvisada, puedes usar una acción bonus para intentar agarrar al objetivo"
+      ],
+      "category": "combat"
+    },
+    "tough": {
+      "name": "Duro",
+      "description": "Eres excepcionalmente duro",
+      "prerequisites": [],
+      "benefits": [
+        "Tu máximo de puntos de vida aumenta en una cantidad igual al doble de tu nivel cuando ganas esta dote",
+        "Cada vez que ganes un nivel, tu máximo de puntos de vida aumenta en 2"
+      ],
+      "category": "physical"
+    },
+    "war_caster": {
+      "name": "Lanzador de Conjuros de Guerra",
+      "description": "Eres experto en lanzar hechizos en combate",
+      "prerequisites": ["Capacidad de lanzar al menos un hechizo"],
+      "benefits": [
+        "Tienes ventaja en tiradas de salvación de Constitución para mantener la concentración en un hechizo cuando recibes daño",
+        "Puedes realizar los componentes somáticos de hechizos incluso cuando tienes armas o un escudo en una o ambas manos",
+        "Cuando una criatura provoca un ataque de oportunidad de ti, puedes usar tu reacción para lanzar un hechizo en la criatura"
+      ],
+      "category": "magical"
+    },
+    "weapon_master": {
+      "name": "Maestro de Armas",
+      "description": "Eres experto en usar armas",
+      "prerequisites": [],
+      "benefits": [
+        "Aumenta tu Fuerza o Destreza en 1, hasta un máximo de 20",
+        "Ganas proficiencia con cuatro armas de tu elección"
+      ],
+      "category": "combat"
+    }
+  },
+  "categories": {
+    "combat": "Combate",
+    "physical": "Físico",
+    "social": "Social",
+    "exploration": "Exploración",
+    "magical": "Mágico",
+    "support": "Apoyo",
+    "mental": "Mental",
+    "general": "General",
+    "stealth": "Sigilo"
+  }
+}

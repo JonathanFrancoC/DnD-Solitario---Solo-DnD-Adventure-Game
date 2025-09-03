@@ -44,7 +44,7 @@ function createWindow() {
 
   // Cargar la aplicación desde archivos estáticos
   console.log('Cargando aplicación desde archivos estáticos...')
-  const indexPath = path.join(__dirname, '../index.html')
+  const indexPath = path.join(__dirname, '../dist/index.html')
   console.log('Ruta del archivo:', indexPath)
   mainWindow.loadFile(indexPath)
   

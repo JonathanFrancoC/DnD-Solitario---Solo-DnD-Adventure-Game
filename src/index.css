@@ -33,3 +33,31 @@
     @apply bg-gradient-to-r from-dnd-brown to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-bold py-2 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg;
   }
 }
+
+/* Bloquea interacción adicional en preview y da aspecto gris */
+.locked input,
+.locked textarea,
+.locked select,
+.locked button {
+  pointer-events: none;
+}
+
+.locked .clickable { 
+  pointer-events: none; 
+}
+
+.locked input, 
+.locked textarea, 
+.locked select {
+  background: #f0f0f0 !important;
+  color: #555;
+  cursor: not-allowed;
+}
+
+/* Permitir editar PG actuales incluso en locked */
+.locked #currentHPField {
+  pointer-events: auto;
+  background: #fff !important;
+  color: inherit;
+  cursor: text;
+}

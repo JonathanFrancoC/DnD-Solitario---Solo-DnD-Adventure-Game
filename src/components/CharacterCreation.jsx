@@ -12,7 +12,8 @@ import {
   classSkillOptions,
   backgroundSkills,
   ALL_SKILLS,
-  getClassStartingEquipment
+  getClassStartingEquipment,
+  getPreparedSpellsCount
 } from '../data/gameData.js'
 import { classEquipment } from '../data/classEquipment.js'
 import { pointBuyCostFromBase, calculateEffectiveStats, calculateTotalCost, applyClassRecommendations } from '../utils/recommendedStats.js'
@@ -29,7 +30,8 @@ import {
   isSpellcaster, 
   getAvailableSpellsForLevelUp, 
   getStartingSpells, 
-  getStartingCantrips
+  getStartingCantrips,
+  getSpellcastingAbility
 } from '../utils/spellUtils'
 
 // tabla de progresión por clase y nivel
@@ -54,6 +56,7 @@ import {
 import ClassMechanicsPanel from './ClassMechanicsPanel.jsx'
 import ClassMechanicsManager from './ClassMechanicsManager.jsx'
 import WeaponDamageCalculator from './WeaponDamageCalculator.jsx'
+import LevelUpManager from './LevelUpManager.jsx'
 
 // utilidades de mecánicas
 import { getAvailableMechanics } from '../data/classMechanics.js'
@@ -188,11 +191,11 @@ const CharacterCreation = ({
   characterData, 
   setCharacterData, 
   handleCharacterDataChange,
-  currentCampaignId = null
+  currentCampaignId = null,
+  creationMode = 'guided'
 }) => {
   const [step, setStep] = useState(0)
   const [personalityMethod, setPersonalityMethod] = useState('custom') // 'custom', 'random', 'select'
-  const [creationMode, setCreationMode] = useState('guided')
   const [availablePoints, setAvailablePoints] = useState(25)
   const [baseStats, setBaseStats] = useState({
     strength: 8,
@@ -281,13 +284,41 @@ const CharacterCreation = ({
     }
   }, [characterData.class])
 
+  // Reiniciar habilidades cuando cambie la clase (para evitar sobrepasar límites)
+  React.useEffect(() => {
+    if (characterData.class) {
+      // Obtener las habilidades del trasfondo actual
+      const backgroundSkillList = getBackgroundSkills(characterData.background) || []
+      
+      // Reiniciar habilidades solo con las del trasfondo
+      // Esto asegura que las habilidades del trasfondo siempre estén incluidas
+      handleCharacterDataChange('skills', [...backgroundSkillList])
+    }
+  }, [characterData.class, characterData.background])
+
+  // Reiniciar hechizos cuando cambie la clase
+  React.useEffect(() => {
+    if (characterData.class) {
+      setSelectedCantrips([])
+      setSelectedSpells([])
+      setSpellSelections({})
+      setHpRolledForLevel({})
+      setNewCantrips([])
+      setNewSpells([])
+      setLevelUpSpells([])
+      setLevelUpHistory([])
+      handleCharacterDataChange('cantrips', [])
+      handleCharacterDataChange('spells', [])
+    }
+  }, [characterData.class])
+
   // Agregar automáticamente las habilidades del trasfondo cuando se selecciona un trasfondo
   React.useEffect(() => {
     if (characterData.background) {
       const backgroundSkillList = getBackgroundSkills(characterData.background) || []
       const currentSkills = Array.isArray(characterData.skills) ? characterData.skills : []
       
-      // Agregar habilidades del trasfondo que no estén ya seleccionadas
+      // Asegurar que todas las habilidades del trasfondo estén incluidas
       const newSkills = [...currentSkills]
       backgroundSkillList.forEach(skill => {
         if (!newSkills.includes(skill)) {
@@ -382,19 +413,23 @@ const CharacterCreation = ({
 
   // Función para obtener el tipo de paso
   const getStepType = (step, level) => {
-    if (step === 0) return 'pre-menu'
+    if (step === 0) return 'basic-info' // Cambiado de 'pre-menu' a 'basic-info'
     if (step === 1) return 'basic-info'
     if (step === 2) return 'stats'
     if (step === 3) return 'skills'
     if (step === 4) return 'mechanics'
-    if (step === 5) return 'level-up'
+    if (step === 5) return 'physical-details'
+    if (step === 6) return 'story'
+    // Si el nivel objetivo es mayor a 1, usar LevelUpManager en lugar de la interfaz integrada
+    if (step === 7 && initialTargetLevel > 1) return 'level-up-manager'
+    if (step === 7) return 'level-up'
     return 'save'
   }
 
   // Función para obtener el número total de pasos
   const getTotalSteps = (level) => {
-    if (level === 1) return 6
-    return 7
+    if (level === 1) return 7 // Agregamos el paso de detalles físicos
+    return 8 // Agregamos el paso de detalles físicos y el paso de historia
   }
 
   // Función para obtener el nivel objetivo
@@ -406,7 +441,13 @@ const CharacterCreation = ({
   const canAdvanceStep = (step, characterData) => {
     switch (step) {
       case 0:
-        return true
+        return characterData.name && 
+               characterData.name.trim() !== '' && 
+               characterData.class && 
+               characterData.background &&
+               characterData.race &&
+               characterData.gender &&
+               characterData.alignment
       case 1:
         return characterData.name && 
                characterData.name.trim() !== '' && 
@@ -437,6 +478,8 @@ const CharacterCreation = ({
       case 4:
         return true
       case 5:
+        return true // Paso opcional de detalles físicos
+      case 6:
         return true
       default:
         return true
@@ -866,13 +909,16 @@ const CharacterCreation = ({
     const classOptions = classSkillOptions[className]
     if (!classOptions) return []
     
-    // En modo guiado, solo mostrar las habilidades de clase
+    // Obtener habilidades del trasfondo
+    const backgroundSkillList = backgroundSkills[background] || []
+    
+    // En modo guiado, mostrar habilidades de clase + habilidades del trasfondo
     if (creationMode === 'guided') {
-      return classOptions.from
+      const allAvailable = [...new Set([...classOptions.from, ...backgroundSkillList])]
+      return allAvailable
     }
     
     // En modo personalizado, mostrar todas las habilidades disponibles
-    const backgroundSkillList = backgroundSkills[background] || []
     const allAvailable = [...new Set([...classOptions.from, ...backgroundSkillList])]
     
     return allAvailable
@@ -1168,63 +1214,7 @@ const CharacterCreation = ({
     return options
   }
 
-  // Renderizar pre-menú
-  const renderPreMenu = () => {
-    return (
-      <div className="character-creation">
-        <div className="creation-header">
-          <h1>DUNGEONS & DRAGONS®</h1>
-          <h2>CREACIÓN DE PERSONAJE</h2>
-        </div>
-
-        <div className="step-container">
-          <div className="step-header">
-            SELECCIONA TU MODO DE CREACIÓN
-        </div>
-          <div className="step-content">
-            <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-              <h3 style={{ marginBottom: '20px', color: '#8B4513', fontSize: '1.5em' }}>
-                ¿Cómo quieres crear tu personaje?
-              </h3>
-              <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                <button
-                  onClick={() => setCreationMode('guided')}
-                  className={`personality-button ${creationMode === 'guided' ? 'active' : ''}`}
-                  style={{ fontSize: '1.1em', padding: '15px 25px' }}
-                >
-                  🎯 Guiado
-                </button>
-                <button
-                  onClick={() => setCreationMode('custom')}
-                  className={`personality-button ${creationMode === 'custom' ? 'active' : ''}`}
-                  style={{ fontSize: '1.1em', padding: '15px 25px' }}
-                >
-                  ⚙️ Personalizado
-                </button>
-                <button
-                  onClick={() => setCreationMode('random')}
-                  className={`personality-button ${creationMode === 'random' ? 'active' : ''}`}
-                  style={{ fontSize: '1.1em', padding: '15px 25px' }}
-                >
-                  🎲 Aleatorio
-                </button>
-        </div>
-      </div>
-
-            <div style={{ textAlign: 'center' }}>
-        <button
-                onClick={() => setStep(1)}
-                className="save-button"
-                style={{ fontSize: '1.3em', padding: '20px 40px' }}
-              >
-                🚀 COMENZAR AVENTURA
-        </button>
-            </div>
-          </div>
-      </div>
-    </div>
-  )
-  }
+  // Renderizar pre-menú - ELIMINADO porque ya existe el menú principal en App.jsx
 
   // Renderizar paso 1 - Información básica
   const renderStep1 = () => {
@@ -1233,7 +1223,7 @@ const CharacterCreation = ({
       <div className="character-creation">
         <div className="creation-header">
           <h1>DUNGEONS & DRAGONS®</h1>
-          <h2>PASO 1: INFORMACIÓN BÁSICA</h2>
+          <h2>PASO: INFORMACIÓN BÁSICA</h2>
         </div>
         
         <div className="step-container">
@@ -1349,8 +1339,13 @@ const CharacterCreation = ({
                     Nivel Inicial:
                   </label>
                                      <select
-                     value={characterData.level || 1}
-                     onChange={(e) => handleCharacterDataChange('level', parseInt(e.target.value))}
+                     value={initialTargetLevel}
+                     onChange={(e) => {
+                       const level = parseInt(e.target.value);
+                       setInitialTargetLevel(level);
+                       // Siempre mantener el personaje en nivel 1 durante la creación
+                       handleCharacterDataChange('level', 1);
+                     }}
                      className="form-select"
                    >
                      <option value={1}>Nivel 1 (Inicio)</option>
@@ -1447,7 +1442,7 @@ const CharacterCreation = ({
       <div className="character-creation">
         <div className="creation-header">
           <h1>DUNGEONS & DRAGONS®</h1>
-          <h2>PASO 2: ESTADÍSTICAS</h2>
+          <h2>PASO: ESTADÍSTICAS</h2>
               </div>
         
         <div className="step-container">
@@ -1968,7 +1963,7 @@ const CharacterCreation = ({
       <div className="character-creation">
         <div className="creation-header">
           <h1>DUNGEONS & DRAGONS®</h1>
-          <h2>PASO 3: HABILIDADES Y PERSONALIDAD</h2>
+          <h2>PASO: HABILIDADES Y PERSONALIDAD</h2>
               </div>
         
         <div className="step-container">
@@ -1986,7 +1981,7 @@ const CharacterCreation = ({
                 <div style={{ fontSize: '12px', marginBottom: '15px' }}>
                   <p>Selecciona las habilidades en las que tu personaje es proficiente:</p>
                   <p style={{ color: '#666', fontSize: '11px' }}>
-                    <strong>Modo:</strong> {creationMode === 'guided' ? 'Guiado (solo habilidades de clase)' : 'Personalizado (todas las habilidades disponibles)'}
+                    <strong>Modo:</strong> {creationMode === 'guided' ? 'Guiado (habilidades de clase + trasfondo)' : 'Personalizado (todas las habilidades disponibles)'}
                   </p>
                   <p style={{ color: '#8B4513', fontSize: '11px', fontWeight: 'bold' }}>
                     <strong>Límite:</strong> {getMaxSkillChoices(characterData.class)} habilidades de clase
@@ -2007,10 +2002,7 @@ const CharacterCreation = ({
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
-                  {(creationMode === 'guided' ? 
-                    (getClassSkills(characterData.class) || []) : 
-                    (getAvailableSkills(characterData.class, characterData.background) || [])
-                  ).map(skill => {
+                  {(getAvailableSkills(characterData.class, characterData.background) || []).map(skill => {
                     const isFromBackground = isBackgroundSkill(skill)
                     const isSelected = isSkillSelected(skill)
                     const isDisabled = (!canSelectMoreSkills() && !isSelected) || isFromBackground
@@ -2335,7 +2327,7 @@ const CharacterCreation = ({
       <div className="character-creation">
                 <div className="creation-header">
           <h1>DUNGEONS & DRAGONS®</h1>
-          <h2>PASO 5: RESUMEN DEL PERSONAJE</h2>
+          <h2>PASO RESUMEN DEL PERSONAJE</h2>
         </div>
         
         <div className="step-container">
@@ -2597,6 +2589,9 @@ const CharacterCreation = ({
   const [newSpells, setNewSpells] = useState([])
   const [selectedSpellForDetails, setSelectedSpellForDetails] = useState(null)
   const [spellSelections, setSpellSelections] = useState({}) // Para persistir selecciones por nivel
+  const [showLevelUpManager, setShowLevelUpManager] = useState(false)
+  const [finalCharacterData, setFinalCharacterData] = useState(null)
+  const [initialTargetLevel, setInitialTargetLevel] = useState(1)
 
   // Derivados para la subida progresiva (a nivel de componente)
   const startLevel = 1
@@ -2775,6 +2770,16 @@ const CharacterCreation = ({
       selectedSpells
     });
     
+    // Procesar hechizos seleccionados
+    const processedCantrips = selectedCantrips.map(c => c.key || c);
+    const processedSpells = selectedSpells.map(s => s.key || s);
+
+    // Calcular información de conjuros
+    const spellcastingAbility = getSpellcastingAbility(characterData.class);
+    const spellcastingModifier = mod(characterData[spellcastingAbility] || 10);
+    const spellSaveDC = 8 + characterData.proficiencyBonus + spellcastingModifier;
+    const spellAttackBonus = characterData.proficiencyBonus + spellcastingModifier;
+    
     // Consolidate all character data
     const finalCharacterData = {
       ...characterData,
@@ -2791,12 +2796,24 @@ const CharacterCreation = ({
       passivePerception: 10 + (skills.perception?.modifier ?? mod(characterData.wisdom)),
       attacks,
       creationMode,
-      startingEquipment: startingEquipment.join(', ')
+      startingEquipment: startingEquipment.join(', '),
+      // Hechizos
+      cantrips: processedCantrips,
+      spells: processedSpells,
+      // Información de conjuros
+      spellcasterClass: characterData.class,
+      spellcasterLevel: characterData.level || 1,
+      spellcastingModifier: spellcastingModifier,
+      spellSaveDC: spellSaveDC,
+      spellAttackBonus: spellAttackBonus
     }
     
     console.log('🔍 DEBUG - finalCharacterData:', finalCharacterData)
     console.log('🔍 DEBUG - finalCharacterData.alignment:', finalCharacterData.alignment)
     console.log('🔍 DEBUG - finalCharacterData.skills:', finalCharacterData.skills)
+    
+    // Si el nivel objetivo es mayor a 1, el LevelUpManager se activará automáticamente en el paso 4
+    // No necesitamos hacer nada aquí
     
     // Guardar el personaje si hay una campaña activa
     if (currentCampaignId) {
@@ -2812,15 +2829,37 @@ const CharacterCreation = ({
     onCharacterCreated(finalCharacterData)
   }
 
+  // Manejar la finalización del proceso de subir de nivel
+  const handleLevelUpComplete = (updatedCharacter) => {
+    setShowLevelUpManager(false)
+    
+    // Guardar el personaje si hay una campaña activa
+    if (currentCampaignId) {
+      try {
+        console.log('Guardando personaje en campaña:', currentCampaignId, updatedCharacter);
+      } catch (error) {
+        console.error('Error guardando personaje:', error);
+      }
+    }
+    
+    onCharacterCreated(updatedCharacter)
+  }
+
+  // Cancelar el proceso de subir de nivel
+  const handleLevelUpCancel = () => {
+    setShowLevelUpManager(false)
+    setFinalCharacterData(null)
+  }
+
   // Renderizar paso 5 - Subida de nivel progresiva
   const renderStep5 = () => {
     // Si el nivel objetivo es 1, no hay subida de nivel
-    if (targetLevel === 1) {
+    if (initialTargetLevel === 1) {
       return (
         <div className="character-creation">
                   <div className="creation-header">
           <h1>DUNGEONS & DRAGONS®</h1>
-          <h2>PASO 6: PERSONAJE COMPLETADO</h2>
+          <h2>PASO: PERSONAJE COMPLETADO</h2>
         </div>
           
           <div className="step-container">
@@ -2870,7 +2909,7 @@ const CharacterCreation = ({
       <div className="character-creation">
         <div className="creation-header">
           <h1>DUNGEONS & DRAGONS®</h1>
-                          <h2>PASO 7: SUBIDA DE NIVEL PROGRESIVA</h2>
+                          <h2>PASO: SUBIDA DE NIVEL PROGRESIVA</h2>
         </div>
         
         <div className="step-container">
@@ -3812,13 +3851,198 @@ const CharacterCreation = ({
     )
   }
 
-  // Renderizar paso 6 - Mecánicas de clase
+  // Renderizar LevelUpManager
+  const renderLevelUpManager = () => {
+    // Crear datos del personaje para el LevelUpManager
+    const characterDataForLevelUp = {
+      ...characterData,
+      level: 1, // Siempre empezamos desde nivel 1
+      cantrips: selectedCantrips,
+      spells: selectedSpells,
+      maxHP: characterData.maxHP || 10,
+      currentHP: characterData.currentHP || 10
+    }
+
+    return (
+      <div className="character-creation">
+        <div className="creation-header">
+          <h1>DUNGEONS & DRAGONS®</h1>
+          <h2>SUBIDA DE NIVEL PROGRESIVA</h2>
+        </div>
+        
+        <LevelUpManager
+          characterData={characterDataForLevelUp}
+          targetLevel={initialTargetLevel}
+          onLevelUpComplete={handleLevelUpComplete}
+          onCancel={handleLevelUpCancel}
+          isCreationMode={true}
+        />
+      </div>
+    )
+  }
+
+  // Renderizar paso 6 - Detalles físicos opcionales
   const renderStep6 = () => {
     return (
       <div className="character-creation">
         <div className="creation-header">
           <h1>DUNGEONS & DRAGONS®</h1>
-          <h2>PASO 4: MECÁNICAS DE CLASE</h2>
+          <h2>PASO: DETALLES FÍSICOS (OPCIONAL)</h2>
+        </div>
+        
+        <div className="step-container">
+          <div className="step-header">
+            👤 DETALLES FÍSICOS DEL PERSONAJE
+          </div>
+          <div className="step-content">
+            <p style={{ margin: '10px 0 20px 0', fontSize: '14px', opacity: 0.9 }}>
+              Completa los detalles físicos de tu personaje. Este paso es completamente opcional.
+            </p>
+
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: '40% 60%', 
+              gap: '16px', 
+              marginBottom: '20px',
+              padding: '16px',
+              border: '2px solid #000',
+              borderRadius: '8px',
+              backgroundColor: '#f9f9f9'
+            }}>
+              {/* NOMBRE DEL PERSONAJE (solo lectura) */}
+              <div>
+                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '4px' }}>
+                  Nombre del Personaje
+                </label>
+                <input 
+                  value={characterData.name || ''}
+                  readOnly
+                  style={{ 
+                    width: '100%', 
+                    padding: '12px', 
+                    borderRadius: '4px', 
+                    border: '2px solid #000', 
+                    fontSize: '16px', 
+                    fontWeight: 'bold', 
+                    backgroundColor: '#f0f0f0',
+                    color: '#666'
+                  }}
+                />
+              </div>
+              
+              {/* 60% DERECHA - 2 renglones con 3 recuadros cada uno */}
+              <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: '8px' }}>
+                {/* PRIMER RENGLÓN - 3 recuadros */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '2px', fontSize: '12px' }}>
+                      Edad
+                    </label>
+                    <input 
+                      value={characterData.age || ''}
+                      onChange={e => handleCharacterDataChange('age', e.target.value)}
+                      placeholder="Ej: 25"
+                      style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '2px solid #000', fontSize: '14px', backgroundColor: '#fff' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '2px', fontSize: '12px' }}>
+                      Altura
+                    </label>
+                    <input 
+                      value={characterData.height || ''}
+                      onChange={e => handleCharacterDataChange('height', e.target.value)}
+                      placeholder="Ej: 1.75m"
+                      style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '2px solid #000', fontSize: '14px', backgroundColor: '#fff' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '2px', fontSize: '12px' }}>
+                      Peso
+                    </label>
+                    <input 
+                      value={characterData.weight || ''}
+                      onChange={e => handleCharacterDataChange('weight', e.target.value)}
+                      placeholder="Ej: 70kg"
+                      style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '2px solid #000', fontSize: '14px', backgroundColor: '#fff' }}
+                    />
+                  </div>
+                </div>
+                
+                {/* SEGUNDO RENGLÓN - 3 recuadros */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '2px', fontSize: '12px' }}>
+                      Ojos
+                    </label>
+                    <input 
+                      value={characterData.eyes || ''}
+                      onChange={e => handleCharacterDataChange('eyes', e.target.value)}
+                      placeholder="Ej: Verdes"
+                      style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '2px solid #000', fontSize: '14px', backgroundColor: '#fff' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '2px', fontSize: '12px' }}>
+                      Piel
+                    </label>
+                    <input 
+                      value={characterData.skin || ''}
+                      onChange={e => handleCharacterDataChange('skin', e.target.value)}
+                      placeholder="Ej: Clara"
+                      style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '2px solid #000', fontSize: '14px', backgroundColor: '#fff' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '2px', fontSize: '12px' }}>
+                      Cabello
+                    </label>
+                    <input 
+                      value={characterData.hair || ''}
+                      onChange={e => handleCharacterDataChange('hair', e.target.value)}
+                      placeholder="Ej: Castaño"
+                      style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '2px solid #000', fontSize: '14px', backgroundColor: '#fff' }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{
+              marginTop: '20px',
+              padding: '15px',
+              backgroundColor: '#fff3cd',
+              border: '1px solid #ffeaa7',
+              borderRadius: '6px',
+              fontSize: '14px',
+              color: '#856404'
+            }}>
+              <strong>💡 Nota:</strong> Estos detalles son completamente opcionales. Puedes dejarlos vacíos y completarlos más tarde en la hoja de personaje.
+            </div>
+
+            {/* Sección de detalles adicionales */}
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: '1fr 2.5fr', 
+              gap: '20px',
+              marginTop: '30px',
+              minHeight: '600px'
+            }}>
+              {/* Contenido de detalles adicionales */}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Renderizar paso 7 - Mecánicas de clase
+  const renderStep7 = () => {
+    return (
+      <div className="character-creation">
+        <div className="creation-header">
+          <h1>DUNGEONS & DRAGONS®</h1>
+          <h2>PASO: MECÁNICAS DE CLASE</h2>
         </div>
         
         <div className="step-container">
@@ -3844,9 +4068,30 @@ const CharacterCreation = ({
             // 1) ¿La clase lanza conjuros en este nivel?
             const classKey = normalizeClassKey(characterData.class)
             const charLevel = Number(characterData.level) || 1
+            
+            // Determinar si es una clase que prepara conjuros o los conoce
+            const isPreparedCaster = ['mago', 'clerigo', 'druida', 'paladin'].includes(classKey)
+            
+            let spellsKnown = 0
+            if (isPreparedCaster) {
+              // Para clases que preparan conjuros, calcular basado en modificador + nivel
+              let abilityMod = 0
+              if (classKey === 'mago') {
+                abilityMod = getAbilityModifier(characterData.intelligence || 10)
+              } else if (classKey === 'clerigo' || classKey === 'druida') {
+                abilityMod = getAbilityModifier(characterData.wisdom || 10)
+              } else if (classKey === 'paladin') {
+                abilityMod = getAbilityModifier(characterData.charisma || 10)
+              }
+              spellsKnown = getPreparedSpellsCount(classKey, charLevel, abilityMod) || 0
+            } else {
+              // Para clases que conocen conjuros
+              spellsKnown = spellsKnownAt(classKey, charLevel)
+            }
+            
             const spellInfoLv1 = {
               cantripsKnown: cantripsKnownAt(classKey, charLevel),
-              spellsKnown: spellsKnownAt(classKey, charLevel)
+              spellsKnown: spellsKnown
             }
             const isCasterLv1 = spellInfoLv1.cantripsKnown > 0 || spellInfoLv1.spellsKnown > 0
 
@@ -3858,7 +4103,7 @@ const CharacterCreation = ({
             console.log('Debug - classAvailability:', classAvailability)
             
             // Qué puede aprender esta clase (según tu tabla de permisos)
-            const availability = classAvailability?.[classKey] || {};
+            const availability = normalizedAvailability?.[classKey] || {};
             console.log('Debug - availability:', availability)
 
             // Trucos permitidos por la clase (todas las claves marcadas en availability.cantrips)
@@ -3904,15 +4149,16 @@ const CharacterCreation = ({
 
             const toggleStartingCantrip = (key) => {
               setSelectedCantrips(prev => {
-                const has = prev.some(x => (x.key || x) === key)
+                const prevArray = Array.isArray(prev) ? prev : []
+                const has = prevArray.some(x => (x.key || x) === key)
                 if (has) {
-                  const newCantrips = prev.filter(x => (x.key || x) !== key)
+                  const newCantrips = prevArray.filter(x => (x.key || x) !== key)
                   // Actualizar characterData
                   handleCharacterDataChange('cantrips', newCantrips)
                   return newCantrips
                 }
-                if (prev.length >= maxCantrips) return prev // no exceder
-                const newCantrips = [...prev, key]
+                if (prevArray.length >= maxCantrips) return prevArray // no exceder
+                const newCantrips = [...prevArray, key]
                 // Actualizar characterData
                 handleCharacterDataChange('cantrips', newCantrips)
                 return newCantrips
@@ -3921,15 +4167,16 @@ const CharacterCreation = ({
 
             const toggleStartingSpell = (key) => {
               setSelectedSpells(prev => {
-                const has = prev.some(x => (x.key || x) === key)
+                const prevArray = Array.isArray(prev) ? prev : []
+                const has = prevArray.some(x => (x.key || x) === key)
                 if (has) {
-                  const newSpells = prev.filter(x => (x.key || x) !== key)
+                  const newSpells = prevArray.filter(x => (x.key || x) !== key)
                   // Actualizar characterData
                   handleCharacterDataChange('spells', newSpells)
                   return newSpells
                 }
-                if (prev.length >= maxSpells) return prev // no exceder
-                const newSpells = [...prev, key]
+                if (prevArray.length >= maxSpells) return prevArray // no exceder
+                const newSpells = [...prevArray, key]
                 // Actualizar characterData
                 handleCharacterDataChange('spells', newSpells)
                 return newSpells
@@ -3940,8 +4187,8 @@ const CharacterCreation = ({
 
             
 
-            // 4) UI solo si nivel objetivo es 1 y la clase es lanzadora
-            if (characterData.level === 1 && isCasterLv1) {
+            // 4) UI solo si la clase es lanzadora (mostrar siempre, no solo en nivel 1)
+            if (isCasterLv1) {
               return (
                 <div style={{ marginTop: 20 }}>
                   <div style={{
@@ -3952,7 +4199,7 @@ const CharacterCreation = ({
                     marginBottom: '15px'
                   }}>
                                       <h3 style={{ margin: 0, fontSize: '18px' }}>
-                    🪄 CONJUROS CONOCIDOS (Nivel 1)
+                      🪄 CONJUROS CONOCIDOS
                   </h3>
                 </div>
 
@@ -4193,14 +4440,388 @@ const CharacterCreation = ({
     )
   }
 
+  // Renderizar paso 8 - Historia del personaje (opcional)
+  const renderStep8 = () => {
+    return (
+      <div className="character-creation">
+        <div className="creation-header">
+          <h1>DUNGEONS & DRAGONS®</h1>
+          <h2>PASO: HISTORIA DEL PERSONAJE (OPCIONAL)</h2>
+        </div>
+        
+        <div className="step-container">
+          <div className="step-header">
+            📖 HISTORIA DEL PERSONAJE
+          </div>
+          <div className="step-content">
+            <p style={{ margin: '10px 0 20px 0', fontSize: '14px', opacity: 0.9 }}>
+              Completa la historia de tu personaje. Este paso es completamente opcional.
+            </p>
+
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: '1fr 2.5fr', 
+              gap: '20px',
+              marginTop: '30px',
+              minHeight: '600px'
+            }}>
+              
+              {/* COLUMNA IZQUIERDA - Pequeña, 2 recuadros */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                
+                {/* APARIENCIA DEL PERSONAJE */}
+                <div style={{ 
+                  padding: '20px',
+                  border: '2px solid #000',
+                  borderRadius: '8px',
+                  backgroundColor: '#f9f9f9',
+                  flex: 1
+                }}>
+                  <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '16px', textAlign: 'center' }}>Apariencia del Personaje</h3>
+                  
+                  {/* Área de imagen */}
+                  <div style={{
+                    width: '100%',
+                    height: '200px',
+                    border: '2px dashed #ccc',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: '#fafafa',
+                    marginBottom: '15px',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}>
+                    {characterData.characterImage ? (
+                      <>
+                        <img 
+                          src={characterData.characterImage} 
+                          alt="Personaje"
+                          style={{
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            objectFit: 'contain'
+                          }}
+                        />
+                        <button
+                          onClick={() => handleCharacterDataChange('characterImage', '')}
+                          style={{
+                            position: 'absolute',
+                            top: '5px',
+                            right: '5px',
+                            background: 'rgba(255, 0, 0, 0.8)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: '25px',
+                            height: '25px',
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                          title="Eliminar imagen"
+                        >
+                          ×
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <div style={{ fontSize: '48px', color: '#ccc', marginBottom: '10px' }}>👤</div>
+                        <div style={{ fontSize: '14px', color: '#666', textAlign: 'center', marginBottom: '10px' }}>
+                          Selecciona una imagen para tu personaje
+                        </div>
+                        <label style={{
+                          background: '#007bff',
+                          color: 'white',
+                          padding: '8px 16px',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          border: 'none'
+                        }}>
+                          Seleccionar Imagen
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onload = (event) => {
+                                  handleCharacterDataChange('characterImage', event.target.result);
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                            style={{ display: 'none' }}
+                          />
+                        </label>
+                      </>
+                    )}
+                  </div>
+                  
+                  <textarea 
+                    value={characterData.appearance || ''}
+                    onChange={e => handleCharacterDataChange('appearance', e.target.value)}
+                    placeholder="Descripción detallada de la apariencia física del personaje..."
+                    rows="15"
+                    style={{ 
+                      width: '100%', 
+                      padding: '12px', 
+                      borderRadius: '4px', 
+                      border: 'none', 
+                      fontSize: '14px', 
+                      resize: 'none', 
+                      backgroundColor: 'transparent',
+                      minHeight: '200px',
+                      lineHeight: '1.5'
+                    }}
+                  />
+                </div>
+
+                {/* HISTORIA DEL PERSONAJE */}
+                <div style={{ 
+                  padding: '20px',
+                  border: '2px solid #000',
+                  borderRadius: '8px',
+                  backgroundColor: '#f9f9f9',
+                  flex: 1
+                }}>
+                  <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '16px', textAlign: 'center' }}>Historia del Personaje</h3>
+                  <textarea 
+                    value={characterData.personalHistory || ''}
+                    onChange={e => handleCharacterDataChange('personalHistory', e.target.value)}
+                    placeholder="Historia personal del personaje..."
+                    rows="25"
+                    style={{ 
+                      width: '100%', 
+                      padding: '12px', 
+                      borderRadius: '4px', 
+                      border: 'none', 
+                      fontSize: '14px', 
+                      resize: 'none', 
+                      backgroundColor: 'transparent',
+                      minHeight: '400px',
+                      lineHeight: '1.5'
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* COLUMNA DERECHA - Grande, 3 recuadros */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                
+                {/* ALIADOS Y ORGANIZACIONES */}
+                <div style={{ 
+                  padding: '20px',
+                  border: '2px solid #000',
+                  borderRadius: '8px',
+                  backgroundColor: '#f9f9f9',
+                  position: 'relative',
+                  flex: 1
+                }}>
+                  <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '16px', textAlign: 'center' }}>Aliados y Organizaciones</h3>
+                  
+                  {/* Cuadro NOMBRE/SIMBOLO arriba a la derecha */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '20px',
+                    right: '20px',
+                    width: '100px',
+                    height: '100px',
+                    border: '2px solid #000',
+                    borderRadius: '4px',
+                    backgroundColor: '#fff',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '12px',
+                    fontWeight: 'bold'
+                  }}>
+                    <div style={{ marginBottom: '8px' }}>NOMBRE</div>
+                    <div style={{ 
+                      width: '50px', 
+                      height: '50px', 
+                      border: '1px solid #ccc',
+                      backgroundColor: '#f9f9f9',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '10px',
+                      color: '#666',
+                      position: 'relative',
+                      overflow: 'hidden'
+                    }}>
+                      {characterData.symbolImage ? (
+                        <>
+                          <img 
+                            src={characterData.symbolImage} 
+                            alt="Símbolo"
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'contain'
+                            }}
+                          />
+                          <button
+                            onClick={() => handleCharacterDataChange('symbolImage', '')}
+                            style={{
+                              position: 'absolute',
+                              top: '2px',
+                              right: '2px',
+                              background: 'rgba(255, 0, 0, 0.8)',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '50%',
+                              width: '20px',
+                              height: '20px',
+                              cursor: 'pointer',
+                              fontSize: '10px'
+                            }}
+                            title="Eliminar símbolo"
+                          >
+                            ×
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <div style={{ fontSize: '24px', color: '#ccc' }}>⚔️</div>
+                          <label style={{
+                            position: 'absolute',
+                            bottom: '2px',
+                            right: '2px',
+                            background: '#007bff',
+                            color: 'white',
+                            padding: '2px 4px',
+                            borderRadius: '2px',
+                            cursor: 'pointer',
+                            fontSize: '8px',
+                            border: 'none'
+                          }}>
+                            +
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onload = (event) => {
+                                    handleCharacterDataChange('symbolImage', event.target.result);
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                              style={{ display: 'none' }}
+                            />
+                          </label>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <textarea 
+                    value={characterData.allies || ''}
+                    onChange={e => handleCharacterDataChange('allies', e.target.value)}
+                    placeholder="Aliados, organizaciones, contactos importantes..."
+                    rows="15"
+                    style={{ 
+                      width: '100%', 
+                      padding: '12px', 
+                      borderRadius: '4px', 
+                      border: 'none', 
+                      fontSize: '14px', 
+                      resize: 'none', 
+                      backgroundColor: 'transparent',
+                      minHeight: '200px',
+                      lineHeight: '1.5'
+                    }}
+                  />
+                </div>
+
+                {/* RASGOS Y ATRIBUTOS ADICIONALES */}
+                <div style={{ 
+                  padding: '20px',
+                  border: '2px solid #000',
+                  borderRadius: '8px',
+                  backgroundColor: '#f9f9f9',
+                  flex: 1
+                }}>
+                  <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '16px', textAlign: 'center' }}>Rasgos y Atributos Adicionales</h3>
+                  <textarea 
+                    value={characterData.specialFeatures || ''}
+                    onChange={e => handleCharacterDataChange('specialFeatures', e.target.value)}
+                    placeholder="Rasgos adicionales, características especiales..."
+                    rows="12"
+                    style={{ 
+                      width: '100%', 
+                      padding: '12px', 
+                      borderRadius: '4px', 
+                      border: 'none', 
+                      fontSize: '14px', 
+                      resize: 'none', 
+                      backgroundColor: 'transparent',
+                      minHeight: '200px',
+                      lineHeight: '1.5'
+                    }}
+                  />
+                </div>
+
+                {/* TESORO */}
+                <div style={{ 
+                  padding: '20px',
+                  border: '2px solid #000',
+                  borderRadius: '8px',
+                  backgroundColor: '#f9f9f9',
+                  flex: 1
+                }}>
+                  <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '16px', textAlign: 'center' }}>Tesoro</h3>
+                  <textarea 
+                    value={characterData.treasure || ''}
+                    onChange={e => handleCharacterDataChange('treasure', e.target.value)}
+                    placeholder="Objetos valiosos, tesoros especiales..."
+                    rows="12"
+                    style={{ 
+                      width: '100%', 
+                      padding: '12px', 
+                      borderRadius: '4px', 
+                      border: 'none', 
+                      fontSize: '14px', 
+                      resize: 'none', 
+                      backgroundColor: 'transparent',
+                      minHeight: '200px',
+                      lineHeight: '1.5'
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div style={{
+              marginTop: '20px',
+              padding: '15px',
+              backgroundColor: '#fff3cd',
+              border: '1px solid #ffeaa7',
+              borderRadius: '6px',
+              fontSize: '14px',
+              color: '#856404'
+            }}>
+              <strong>💡 Nota:</strong> Estos detalles son completamente opcionales. Puedes dejarlos vacíos y completarlos más tarde en la hoja de personaje.
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   // Renderizar el contenido principal
   const renderContent = () => {
     const level = characterData.level || 1
     const stepType = getStepType(step, level)
               
               switch (stepType) {
-      case 'pre-menu':
-        return renderPreMenu()
       case 'basic-info':
         return renderStep1()
       case 'stats':
@@ -4208,13 +4829,19 @@ const CharacterCreation = ({
       case 'skills':
         return renderStep3()
       case 'mechanics':
+        return renderStep7()
+      case 'physical-details':
         return renderStep6()
       case 'level-up':
         return renderStep4() 
+      case 'level-up-manager':
+        return renderLevelUpManager()
       case 'save':
         return renderStep5() 
-                 default:
-        return renderPreMenu()
+      case 'story':
+        return renderStep8()
+      default:
+        return renderStep1()
     }
   }
 
@@ -4499,6 +5126,8 @@ const CharacterCreation = ({
           </div>
         </div>
       )}
+
+      {/* Level Up Manager ahora se renderiza dentro de renderLevelUpManager */}
     </div>
   )
 }

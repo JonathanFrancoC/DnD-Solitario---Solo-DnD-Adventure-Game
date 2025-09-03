@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
+  base: './',
   plugins: [react()],
   server: {
     port: 5173,
@@ -11,10 +12,10 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
+    sourcemap: false,
+    modulePreload: { polyfill: false },
     rollupOptions: {
-      input: {
-        main: './src/main.jsx'
-      }
+      input: './index.html'
     }
   }
 })

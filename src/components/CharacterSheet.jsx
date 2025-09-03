@@ -155,6 +155,17 @@ const CharacterSheet = ({ character, onBackToMenu, onCharacterCreated }) => {
     return modifier >= 0 ? `+${modifier}` : `${modifier}`
   }
 
+  const getHitDieMax = (hitDie) => {
+    // hitDie puede ser un string como "d6" o un número como 6
+    if (typeof hitDie === 'string') {
+      // Extraer el número del string "d6" -> 6
+      const match = hitDie.match(/d(\d+)/)
+      return match ? parseInt(match[1]) : 6
+    }
+    // Si ya es un número, devolverlo directamente
+    return parseInt(hitDie) || 6
+  }
+
   const getPassivePerception = () => {
     const wisdomModifier = getAbilityModifier(characterData.wisdom)
     return 10 + wisdomModifier
@@ -175,8 +186,8 @@ const CharacterSheet = ({ character, onBackToMenu, onCharacterCreated }) => {
           ...selectedClass.recommendedStats,
           hitDice: `1d${selectedClass.hitDie}`,
           hitDiceTotal: 1,
-          maxHP: selectedClass.hitDie + getAbilityModifier(selectedClass.recommendedStats.constitution),
-          currentHP: selectedClass.hitDie + getAbilityModifier(selectedClass.recommendedStats.constitution),
+          maxHP: getHitDieMax(selectedClass.hitDie) + getAbilityModifier(selectedClass.recommendedStats.constitution),
+          currentHP: getHitDieMax(selectedClass.hitDie) + getAbilityModifier(selectedClass.recommendedStats.constitution),
           armorClass: 10 + getAbilityModifier(selectedClass.recommendedStats.dexterity)
         }))
       }

@@ -223,7 +223,7 @@ const WeaponDamageCalculator = ({ characterData, mechanics, onDamageChange }) =>
           borderRadius: '6px',
           padding: '12px'
         }}>
-                     <h4 style={{
+os                      <h4 style={{
              margin: '0 0 10px 0',
              fontSize: '14px',
              color: '#1565c0',

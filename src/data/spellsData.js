@@ -63,36 +63,18 @@ export function normalizeAvailability(av) {
 }
 
 // === CONTEO DE TRUCOS POR NIVEL (PHB) ===
-export const CANTRIPS_KNOWN_BY_CLASS = {
-  bardo:   { 1:2, 4:3, 10:4 },
-  brujo:   { 1:2, 4:3, 10:4 },
-  mago:    { 1:3, 4:4, 10:5 },
-  clerigo: { 1:3, 4:4, 10:5 },
-  druida:  { 1:2, 4:3, 10:4 },
-  hechicero: { 1:4, 4:5, 10:6 },
-  paladin: { 1:0 }, ranger: { 1:0 },
-  guerrero: { 1:0 }, picaro: { 1:0 }, barbaro: { 1:0 }, monje: { 1:0 },
-}
+// Importar desde gameData.js para evitar duplicación
+import { CANTRIPS_KNOWN } from './gameData.js'
 
 export function cantripsKnownAt(classKey, level) {
-  const map = CANTRIPS_KNOWN_BY_CLASS[normalizeClassKey(classKey)] || {}
-  let known = 0
-  for (const [lvlStr, val] of Object.entries(map)) {
-    const lv = Number(lvlStr)
-    if (level >= lv) known = val
-  }
-  return known
+  const func = CANTRIPS_KNOWN[normalizeClassKey(classKey)]
+  if (!func) return 0
+  return func(level)
 }
 
 // === CONTEO de CONJUROS CONOCIDOS por clase (para casters de "known spells")
-export const SPELLS_KNOWN_BY_CLASS = {
-  // Valores PHB simplificados (ajústalos si usas otra progresión)
-  bardo:     { 1:4, 2:5, 3:6, 4:7, 5:8, 6:9, 7:10, 8:11, 9:12, 10:14, 11:15, 12:15, 13:16, 14:18, 15:19, 16:19, 17:20, 18:22, 19:22, 20:22 },
-  hechicero: { 1:2, 2:3, 3:4, 4:5, 5:6, 6:7, 7:8, 8:9, 9:10, 10:11, 11:12, 12:12, 13:13, 14:13, 15:14, 16:14, 17:15, 18:15, 19:15, 20:15 },
-  brujo:     { 1:2, 2:3, 3:4, 4:5, 5:6, 6:7, 7:8, 8:9, 9:10, 10:10, 11:11, 12:11, 13:12, 14:12, 15:13, 16:13, 17:14, 18:14, 19:15, 20:15 },
-  ranger:    { 1:0, 2:2, 3:3, 4:3, 5:4, 6:4, 7:5, 8:5, 9:5, 10:6, 11:6, 12:6, 13:7, 14:7, 15:7, 16:8, 17:8, 18:8, 19:9, 20:9 },
-  paladin:   { 1:0, 2:2, 3:3, 4:3, 5:4, 6:4, 7:5, 8:5, 9:5, 10:6, 11:6, 12:6, 13:7, 14:7, 15:7, 16:8, 17:8, 18:8, 19:9, 20:9 },
-}
+// Importar desde gameData.js para evitar duplicación
+import { SPELLS_KNOWN_BY_CLASS } from './gameData.js'
 
 // Devolver "cuántos conjuros conocidos" a este nivel
 export function spellsKnownAt(classKey, level) {

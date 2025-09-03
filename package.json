@@ -7,7 +7,9 @@
     "build": "vite build",
     "electron": "npm run build && electron .",
     "electron-dev": "electron .",
-    "dist": "npm run build && electron-builder --publish=never"
+    "dist": "npm run build && electron-builder --publish=never",
+    "setup": "node setup-characters-folder.js",
+    "setup-characters": "node setup-characters-folder.js"
   },
   "dependencies": {
     "electron-store": "^8.1.0",

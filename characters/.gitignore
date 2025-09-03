@@ -1,0 +1,9 @@
+# Ignorar todos los archivos de personajes por defecto
+# Descomenta las líneas siguientes si quieres incluir personajes específicos en el repositorio
+
+# Ignorar todos los personajes
+*.json
+
+# Para incluir personajes específicos, comenta la línea anterior y descomenta las siguientes:
+# !ejemplo_personaje.json
+# !personaje_demo.json

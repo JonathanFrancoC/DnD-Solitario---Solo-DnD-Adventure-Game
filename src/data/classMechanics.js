@@ -418,3 +418,19 @@ export function getAvailableMechanics(className, level) {
   
   return available
 }
+
+// CONFIGURACIÓN DE SUBCLASES POR CLASE
+export const subclassConfig = {
+  bardo:   { level: 3, options: ['Colegio del Saber', 'Colegio del Valor'] },
+  mago:    { level: 2, options: ['Abjuración','Adivinación','Conjuración','Encantamiento','Evocación','Ilusión','Nigromancia','Transmutación'] },
+  guerrero:{ level: 3, options: ['Campeón','Maestro de Batalla','Caballero Arcano'] },
+  picaro:  { level: 3, options: ['Ladrón','Asesino','Tramposo Arcano'] },
+  paladin: { level: 3, options: ['Juramento de Devoción','Juramento de Venganza','Juramento de los Antiguos'] },
+  explorador: { level: 3, options: ['Cazador','Amo de las Bestias'] },
+  barbaro: { level: 3, options: ['Berserker','Guerrero Totémico'] },
+  druida:  { level: 2, options: ['Círculo de la Tierra','Círculo de la Luna'] },
+  monje:   { level: 3, options: ['Mano Abierta','Sombras','Elementos'] },
+  brujo:   { level: 1, options: ['Archidiablo','Archifata','Antiguo'] },
+  hechicero:{ level: 1, options: ['Linaje Dracónico','Magia Salvaje'] },
+  clerigo: { level: 1, options: ['Vida','Guerra','Luz','Conocimiento','Tempestad','Engaño','Naturaleza'] },
+};
