@@ -7,7 +7,10 @@ const Store = require('electron-store')
 const store = new Store({
   name: 'dnd-solitario-config',
   defaults: {
+    aiProvider: 'openai',
     apiKey: '',
+    ollamaUrl: 'http://localhost:11434',
+    ollamaModel: 'llama3.2',
     developerMode: false,
     settings: {
       tone: 'medium',
@@ -376,14 +379,22 @@ ipcMain.handle('save-config', (event, config) => {
   return true
 })
 
-ipcMain.handle('get-api-key', () => {
-  return store.get('apiKey')
-})
+ipcMain.handle('get-ai-config', () => {
+  return {
+    provider: store.get('aiProvider', 'openai'),
+    apiKey: store.get('apiKey', ''),
+    ollamaUrl: store.get('ollamaUrl', 'http://localhost:11434'),
+    ollamaModel: store.get('ollamaModel', 'llama3.2')
+  };
+});
 
-ipcMain.handle('save-api-key', (event, apiKey) => {
-  store.set('apiKey', apiKey)
-  return true
-})
+ipcMain.handle('save-ai-config', (event, config) => {
+  store.set('aiProvider', config.provider);
+  store.set('apiKey', config.apiKey);
+  store.set('ollamaUrl', config.ollamaUrl);
+  store.set('ollamaModel', config.ollamaModel);
+  return { success: true };
+});
 
 // Handlers para modo desarrollador
 ipcMain.handle('get-developer-mode', () => {

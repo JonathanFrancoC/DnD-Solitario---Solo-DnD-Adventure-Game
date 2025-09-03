@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { isApiKeyConfigured } from '../utils/aiService';
+import { isAIConfigured } from '../utils/aiService';
 
 const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
   const [selectedOption, setSelectedOption] = useState(null);
+  const [aiProvider, setAiProvider] = useState('openai');
   const [apiKey, setApiKey] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
-  const [apiKeyStatus, setApiKeyStatus] = useState('checking'); // 'checking', 'configured', 'not-configured'
+  const [ollamaUrl, setOllamaUrl] = useState('http://localhost:11434');
+  const [ollamaModel, setOllamaModel] = useState('llama3.2');
+  const [aiConfigStatus, setAiConfigStatus] = useState('checking'); // 'checking', 'configured', 'not-configured'
   const [developerMode, setDeveloperMode] = useState(false)
   const [options, setOptions] = useState({
     // Configuración de tono y contenido
@@ -59,33 +62,36 @@ const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
     customContent: currentOptions.customContent || 'none'
   });
 
-  // Cargar la API key al abrir el modal
+  // Cargar la configuración de IA al abrir el modal
   useEffect(() => {
-    loadApiKey();
-    checkApiKeyStatus();
+    loadAIConfig();
+    checkAIConfigStatus();
     loadDeveloperMode();
   }, []);
 
-  const checkApiKeyStatus = async () => {
+  const checkAIConfigStatus = async () => {
     try {
-      const configured = await isApiKeyConfigured();
-      setApiKeyStatus(configured ? 'configured' : 'not-configured');
+      const configured = await isAIConfigured();
+      setAiConfigStatus(configured ? 'configured' : 'not-configured');
     } catch (error) {
-      console.error('Error al verificar estado de API key:', error);
-      setApiKeyStatus('not-configured');
+      console.error('Error al verificar estado de configuración de IA:', error);
+      setAiConfigStatus('not-configured');
     }
   };
 
-  const loadApiKey = async () => {
+  const loadAIConfig = async () => {
     try {
       if (window.electronAPI) {
-        const key = await window.electronAPI.getApiKey();
-        setApiKey(key || '');
+        const config = await window.electronAPI.getAIConfig();
+        setAiProvider(config.provider || 'openai');
+        setApiKey(config.apiKey || '');
+        setOllamaUrl(config.ollamaUrl || 'http://localhost:11434');
+        setOllamaModel(config.ollamaModel || 'llama3.2');
       } else {
         throw new Error('Esta aplicación solo funciona en Electron');
       }
     } catch (error) {
-      console.error('Error al cargar API key:', error);
+      console.error('Error al cargar configuración de IA:', error);
     }
   };
 
@@ -183,16 +189,21 @@ const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
 
   const handleSave = async () => {
     try {
-      // Guardar la API key
+      // Guardar la configuración de IA
       if (window.electronAPI) {
-        await window.electronAPI.saveApiKey(apiKey);
+        await window.electronAPI.saveAIConfig({
+          provider: aiProvider,
+          apiKey: apiKey,
+          ollamaUrl: ollamaUrl,
+          ollamaModel: ollamaModel
+        });
         await window.electronAPI.saveDeveloperMode(developerMode);
       } else {
         throw new Error('Esta aplicación solo funciona en Electron');
       }
       
-      // Verificar el estado de la API key después de guardar
-      await checkApiKeyStatus();
+      // Verificar el estado de la configuración después de guardar
+      await checkAIConfigStatus();
       
       // Guardar las opciones del juego
       onSave(options);
@@ -337,110 +348,222 @@ const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
           </button>
         </div>
 
-        {/* Sección de Configuración de API */}
-        <div style={{
-          marginBottom: '32px',
-          padding: '20px',
-          backgroundColor: '#34495e',
-          borderRadius: '12px',
-          border: '2px solid #e74c3c'
-        }}>
-          <h3 style={{ color: '#e74c3c', marginBottom: '16px', fontSize: '18px' }}>
-            🔑 Configuración de OpenAI API
-          </h3>
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ 
-              display: 'block', 
-              color: '#ecf0f1', 
-              marginBottom: '8px',
-              fontWeight: 'bold'
-            }}>
-              API Key de OpenAI
-            </label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showApiKey ? 'text' : 'password'}
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="sk-..."
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  border: '1px solid #2c3e50',
-                  backgroundColor: '#2c3e50',
-                  color: 'white',
-                  fontSize: '14px'
-                }}
-              />
-              <button
-                onClick={() => setShowApiKey(!showApiKey)}
-                style={{
-                  position: 'absolute',
-                  right: '8px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  color: '#bdc3c7',
-                  cursor: 'pointer',
-                  fontSize: '16px'
-                }}
-              >
-                {showApiKey ? '🙈' : '👁️'}
-              </button>
-            </div>
-            <p style={{ 
-              fontSize: '12px', 
-              color: '#bdc3c7', 
-              marginTop: '8px',
-              lineHeight: '1.4'
-            }}>
-              Obtén tu API key en{' '}
-              <a 
-                href="https://platform.openai.com/api-keys" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                style={{ color: '#3498db', textDecoration: 'underline' }}
-              >
-                platform.openai.com
-              </a>
-              . Esta key es necesaria para que la IA funcione correctamente.
-            </p>
-            {/* Estado de la API Key */}
-            <div style={{
-              marginTop: '12px',
-              padding: '8px 12px',
-              backgroundColor: 
-                apiKeyStatus === 'checking' ? '#f39c12' :
-                apiKeyStatus === 'configured' ? '#27ae60' : '#e74c3c',
-              borderRadius: '6px',
-              fontSize: '12px',
-              color: 'white',
-              fontWeight: 'bold',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              {apiKeyStatus === 'checking' && '⏳ Verificando API Key...'}
-              {apiKeyStatus === 'configured' && '✅ API Key configurada y lista'}
-              {apiKeyStatus === 'not-configured' && '❌ API Key no configurada'}
-            </div>
-            
-            {apiKey && !apiKey.startsWith('sk-') && (
-              <div style={{
-                marginTop: '8px',
-                padding: '8px 12px',
-                backgroundColor: '#e74c3c',
-                borderRadius: '6px',
-                fontSize: '12px',
-                color: 'white',
-                fontWeight: 'bold'
-              }}>
-                ⚠️ Formato de API Key inválido (debe empezar con "sk-")
-              </div>
-            )}
-          </div>
+                 {/* Sección de Configuración de IA */}
+         <div style={{
+           marginBottom: '32px',
+           padding: '20px',
+           backgroundColor: '#34495e',
+           borderRadius: '12px',
+           border: '2px solid #e74c3c'
+         }}>
+           <h3 style={{ color: '#e74c3c', marginBottom: '16px', fontSize: '18px' }}>
+             🤖 Configuración de IA
+           </h3>
+           
+           {/* Selector de Proveedor */}
+           <div style={{ marginBottom: '20px' }}>
+             <label style={{ 
+               display: 'block', 
+               color: '#ecf0f1', 
+               marginBottom: '8px',
+               fontWeight: 'bold'
+             }}>
+               Proveedor de IA
+             </label>
+             <select
+               value={aiProvider}
+               onChange={(e) => setAiProvider(e.target.value)}
+               style={{
+                 width: '100%',
+                 padding: '12px',
+                 borderRadius: '8px',
+                 border: '1px solid #2c3e50',
+                 backgroundColor: '#2c3e50',
+                 color: 'white',
+                 fontSize: '14px'
+               }}
+             >
+               <option value="openai">🔑 OpenAI (GPT-4)</option>
+               <option value="ollama">🦙 Ollama (Local)</option>
+             </select>
+           </div>
+
+           {/* Configuración de OpenAI */}
+           {aiProvider === 'openai' && (
+             <div style={{ marginBottom: '16px' }}>
+               <label style={{ 
+                 display: 'block', 
+                 color: '#ecf0f1', 
+                 marginBottom: '8px',
+                 fontWeight: 'bold'
+               }}>
+                 API Key de OpenAI
+               </label>
+               <div style={{ position: 'relative' }}>
+                 <input
+                   type={showApiKey ? 'text' : 'password'}
+                   value={apiKey}
+                   onChange={(e) => setApiKey(e.target.value)}
+                   placeholder="sk-..."
+                   style={{
+                     width: '100%',
+                     padding: '12px',
+                     borderRadius: '8px',
+                     border: '1px solid #2c3e50',
+                     backgroundColor: '#2c3e50',
+                     color: 'white',
+                     fontSize: '14px'
+                   }}
+                 />
+                 <button
+                   onClick={() => setShowApiKey(!showApiKey)}
+                   style={{
+                     position: 'absolute',
+                     right: '8px',
+                     top: '50%',
+                     transform: 'translateY(-50%)',
+                     background: 'none',
+                     border: 'none',
+                     color: '#bdc3c7',
+                     cursor: 'pointer',
+                     fontSize: '16px'
+                   }}
+                 >
+                   {showApiKey ? '🙈' : '👁️'}
+                 </button>
+               </div>
+               <p style={{ 
+                 fontSize: '12px', 
+                 color: '#bdc3c7', 
+                 marginTop: '8px',
+                 lineHeight: '1.4'
+               }}>
+                 Obtén tu API key en{' '}
+                 <a 
+                   href="https://platform.openai.com/api-keys" 
+                   target="_blank" 
+                   rel="noopener noreferrer"
+                   style={{ color: '#3498db', textDecoration: 'underline' }}
+                 >
+                   platform.openai.com
+                 </a>
+                 . Esta key es necesaria para que la IA funcione correctamente.
+               </p>
+               {apiKey && !apiKey.startsWith('sk-') && (
+                 <div style={{
+                   marginTop: '8px',
+                   padding: '8px 12px',
+                   backgroundColor: '#e74c3c',
+                   borderRadius: '6px',
+                   fontSize: '12px',
+                   color: 'white',
+                   fontWeight: 'bold'
+                 }}>
+                   ⚠️ Formato de API Key inválido (debe empezar con "sk-")
+                 </div>
+               )}
+             </div>
+           )}
+
+           {/* Configuración de Ollama */}
+           {aiProvider === 'ollama' && (
+             <div style={{ marginBottom: '16px' }}>
+               <div style={{ marginBottom: '12px' }}>
+                 <label style={{ 
+                   display: 'block', 
+                   color: '#ecf0f1', 
+                   marginBottom: '8px',
+                   fontWeight: 'bold'
+                 }}>
+                   URL de Ollama
+                 </label>
+                 <input
+                   type="text"
+                   value={ollamaUrl}
+                   onChange={(e) => setOllamaUrl(e.target.value)}
+                   placeholder="http://localhost:11434"
+                   style={{
+                     width: '100%',
+                     padding: '12px',
+                     borderRadius: '8px',
+                     border: '1px solid #2c3e50',
+                     backgroundColor: '#2c3e50',
+                     color: 'white',
+                     fontSize: '14px'
+                   }}
+                 />
+               </div>
+               
+               <div style={{ marginBottom: '12px' }}>
+                 <label style={{ 
+                   display: 'block', 
+                   color: '#ecf0f1', 
+                   marginBottom: '8px',
+                   fontWeight: 'bold'
+                 }}>
+                   Modelo de Ollama
+                 </label>
+                 <select
+                   value={ollamaModel}
+                   onChange={(e) => setOllamaModel(e.target.value)}
+                   style={{
+                     width: '100%',
+                     padding: '12px',
+                     borderRadius: '8px',
+                     border: '1px solid #2c3e50',
+                     backgroundColor: '#2c3e50',
+                     color: 'white',
+                     fontSize: '14px'
+                   }}
+                 >
+                   <option value="llama3.2">🦙 Llama 3.2 (Recomendado)</option>
+                   <option value="llama3.1">🦙 Llama 3.1</option>
+                   <option value="llama2">🦙 Llama 2</option>
+                   <option value="mistral">🌪️ Mistral</option>
+                   <option value="codellama">💻 Code Llama</option>
+                   <option value="phi3">Φ Phi-3</option>
+                 </select>
+               </div>
+               
+               <p style={{ 
+                 fontSize: '12px', 
+                 color: '#bdc3c7', 
+                 marginTop: '8px',
+                 lineHeight: '1.4'
+               }}>
+                 Asegúrate de tener{' '}
+                 <a 
+                   href="https://ollama.ai" 
+                   target="_blank" 
+                   rel="noopener noreferrer"
+                   style={{ color: '#3498db', textDecoration: 'underline' }}
+                 >
+                   Ollama instalado
+                 </a>
+                 {' '}y ejecutándose, y que el modelo seleccionado esté descargado.
+               </p>
+             </div>
+           )}
+
+           {/* Estado de la Configuración */}
+           <div style={{
+             marginTop: '12px',
+             padding: '8px 12px',
+             backgroundColor: 
+               aiConfigStatus === 'checking' ? '#f39c12' :
+               aiConfigStatus === 'configured' ? '#27ae60' : '#e74c3c',
+             borderRadius: '6px',
+             fontSize: '12px',
+             color: 'white',
+             fontWeight: 'bold',
+             display: 'flex',
+             alignItems: 'center',
+             gap: '8px'
+           }}>
+             {aiConfigStatus === 'checking' && '⏳ Verificando configuración...'}
+             {aiConfigStatus === 'configured' && `✅ ${aiProvider === 'openai' ? 'OpenAI' : 'Ollama'} configurado y listo`}
+             {aiConfigStatus === 'not-configured' && `❌ ${aiProvider === 'openai' ? 'OpenAI' : 'Ollama'} no configurado`}
+           </div>
 
           {/* Modo Desarrollador */}
           <div style={{ 

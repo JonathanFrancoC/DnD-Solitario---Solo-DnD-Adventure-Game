@@ -1,20 +1,62 @@
-// Servicio para la integración con ChatGPT (solo Electron)
+// Servicio para la integración con IA (OpenAI y Ollama) - Solo Electron
 
-// Función para obtener la API key del usuario (solo Electron)
-const getApiKey = async () => {
+// Función para obtener la configuración de IA del usuario
+const getAIConfig = async () => {
   try {
     if (window.electronAPI) {
-      return await window.electronAPI.getApiKey();
+      const config = await window.electronAPI.getAIConfig();
+      return config;
     } else {
       throw new Error('Esta aplicación solo funciona en Electron');
     }
   } catch (error) {
-    console.error('Error al obtener API key:', error);
-    return '';
+    console.error('Error al obtener configuración de IA:', error);
+    return { provider: 'openai', apiKey: '', ollamaUrl: 'http://localhost:11434' };
   }
 };
 
 // Sistema de guardado manejado directamente desde Electron
+
+// Función para hacer llamadas a Ollama
+const callOllama = async (message, systemPrompt, ollamaUrl = 'http://localhost:11434', model = 'llama3.2') => {
+  try {
+    const response = await fetch(`${ollamaUrl}/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt
+          },
+          {
+            role: 'user',
+            content: message
+          }
+        ],
+        stream: false,
+        options: {
+          temperature: 0.8,
+          top_p: 0.9,
+          max_tokens: 2000
+        }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error de Ollama: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.message.content;
+  } catch (error) {
+    console.error('Error al comunicarse con Ollama:', error);
+    throw error;
+  }
+};
 
 // Prompt maestro detallado para el DM
 const DM_PROMPT_BASE = `Eres un Dungeon Master (DM) experto de D&D 5ª edición para una campaña en solitario. Sigue estrictamente estas reglas:
@@ -509,6 +551,9 @@ export const sendMessageToDM = async (message, gameState, campaignId = null, gam
       }
     }
 
+    // Obtener configuración de IA
+    const aiConfig = await getAIConfig();
+    
     // Obtener estado completo de la campaña si hay una activa
     let campaignState = null;
     if (campaignId) {
@@ -567,22 +612,37 @@ export const sendMessageToDM = async (message, gameState, campaignId = null, gam
       }
     }
 
-    // Hacer la llamada a OpenAI a través del proceso main
-    const result = await window.electronAPI.askOpenAI({
-      message,
-      gameState: fullGameState,
-      campaignId,
-      gameOptions: {
-        ...gameOptions,
-        systemPrompt
+    // Elegir proveedor de IA
+    if (aiConfig.provider === 'ollama') {
+      // Usar Ollama
+      if (!aiConfig.ollamaUrl) {
+        return `❌ Error: URL de Ollama no configurada.\n\nPor favor, configura la URL de Ollama en las opciones (por defecto: http://localhost:11434)`;
       }
-    });
+      
+      try {
+        const response = await callOllama(message, systemPrompt, aiConfig.ollamaUrl, aiConfig.ollamaModel || 'llama3.2');
+        return response;
+      } catch (error) {
+        return `❌ Error al comunicarse con Ollama: ${error.message}\n\nAsegúrate de que:\n1. Ollama esté instalado y ejecutándose\n2. El modelo ${aiConfig.ollamaModel || 'llama3.2'} esté descargado\n3. La URL ${aiConfig.ollamaUrl} sea correcta`;
+      }
+    } else {
+      // Usar OpenAI (método original)
+      const result = await window.electronAPI.askOpenAI({
+        message,
+        gameState: fullGameState,
+        campaignId,
+        gameOptions: {
+          ...gameOptions,
+          systemPrompt
+        }
+      });
 
-    if (result.error) {
+      if (result.error) {
+        return result.message;
+      }
+
       return result.message;
     }
-
-    return result.message;
 
   } catch (error) {
     console.error('Error al comunicarse con el DM:', error)
@@ -606,6 +666,9 @@ export const sendMessageToAssistant = async (message, gameState, campaignId = nu
       return `❌ Error: Esta funcionalidad solo está disponible en la aplicación de escritorio.\n\nPor favor, ejecuta la aplicación desde Electron para usar el asistente de IA.`;
     }
 
+    // Obtener configuración de IA
+    const aiConfig = await getAIConfig();
+
     // Obtener estado completo de la campaña si hay una activa
     let campaignState = null;
     if (campaignId) {
@@ -624,22 +687,37 @@ export const sendMessageToAssistant = async (message, gameState, campaignId = nu
     const systemPrompt = ASSISTANT_PROMPT + promptModifiers + 
       (fullGameState ? `\nEstado actual del juego:\n${JSON.stringify(fullGameState, null, 2)}` : '')
 
-    // Hacer la llamada a OpenAI a través del proceso main
-    const result = await window.electronAPI.askOpenAI({
-      message,
-      gameState: fullGameState,
-      campaignId,
-      gameOptions: {
-        ...gameOptions,
-        systemPrompt
+    // Elegir proveedor de IA
+    if (aiConfig.provider === 'ollama') {
+      // Usar Ollama
+      if (!aiConfig.ollamaUrl) {
+        return `❌ Error: URL de Ollama no configurada.\n\nPor favor, configura la URL de Ollama en las opciones (por defecto: http://localhost:11434)`;
       }
-    });
+      
+      try {
+        const response = await callOllama(message, systemPrompt, aiConfig.ollamaUrl, aiConfig.ollamaModel || 'llama3.2');
+        return response;
+      } catch (error) {
+        return `❌ Error al comunicarse con Ollama: ${error.message}\n\nAsegúrate de que:\n1. Ollama esté instalado y ejecutándose\n2. El modelo ${aiConfig.ollamaModel || 'llama3.2'} esté descargado\n3. La URL ${aiConfig.ollamaUrl} sea correcta`;
+      }
+    } else {
+      // Usar OpenAI (método original)
+      const result = await window.electronAPI.askOpenAI({
+        message,
+        gameState: fullGameState,
+        campaignId,
+        gameOptions: {
+          ...gameOptions,
+          systemPrompt
+        }
+      });
 
-    if (result.error) {
+      if (result.error) {
+        return result.message;
+      }
+
       return result.message;
     }
-
-    return result.message;
 
   } catch (error) {
     console.error('Error al comunicarse con el asistente:', error)
@@ -680,27 +758,44 @@ export const rollDice = (diceNotation) => {
   return total
 }
 
-// Función para validar API key (solo Electron)
-export const validateAPIKey = async () => {
+// Función para validar configuración de IA
+export const validateAIConfig = async () => {
   try {
     if (!window.electronAPI) {
       return false;
     }
     
-    const apiKey = await getApiKey();
-    if (!apiKey) {
-      return false;
-    }
-
-    // Validar a través del proceso main
-    const result = await window.electronAPI.askOpenAI({
-      message: 'test',
-      gameState: {},
-      campaignId: null,
-      gameOptions: {}
-    });
+    const aiConfig = await getAIConfig();
     
-    return !result.error;
+    if (aiConfig.provider === 'ollama') {
+      // Validar Ollama
+      if (!aiConfig.ollamaUrl) {
+        return false;
+      }
+      
+      try {
+        const response = await callOllama('test', 'Eres un asistente de prueba.', aiConfig.ollamaUrl, aiConfig.ollamaModel || 'llama3.2');
+        return response && response.length > 0;
+      } catch (error) {
+        console.error('Error validando Ollama:', error);
+        return false;
+      }
+    } else {
+      // Validar OpenAI
+      if (!aiConfig.apiKey) {
+        return false;
+      }
+
+      // Validar a través del proceso main
+      const result = await window.electronAPI.askOpenAI({
+        message: 'test',
+        gameState: {},
+        campaignId: null,
+        gameOptions: {}
+      });
+      
+      return !result.error;
+    }
   } catch (error) {
     return false;
   }
@@ -752,10 +847,15 @@ export const generateGameOptionsSummary = (gameOptions) => {
   return summaries.join(' | ');
 };
 
-// Función para verificar si la API key está configurada
-export const isApiKeyConfigured = async () => {
-  const apiKey = await getApiKey();
-  return apiKey && apiKey.startsWith('sk-');
+// Función para verificar si la configuración de IA está configurada
+export const isAIConfigured = async () => {
+  const aiConfig = await getAIConfig();
+  
+  if (aiConfig.provider === 'ollama') {
+    return aiConfig.ollamaUrl && aiConfig.ollamaUrl.length > 0;
+  } else {
+    return aiConfig.apiKey && aiConfig.apiKey.startsWith('sk-');
+  }
 };
 
 // Función para generar personajes por IA

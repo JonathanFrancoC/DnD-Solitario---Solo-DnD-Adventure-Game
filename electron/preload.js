@@ -47,8 +47,8 @@ contextBridge.exposeInMainWorld('fsapi', {
 contextBridge.exposeInMainWorld('electronAPI', {
   getConfig: () => ipcRenderer.invoke('get-config'),
   saveConfig: (config) => ipcRenderer.invoke('save-config', config),
-  getApiKey: () => ipcRenderer.invoke('get-api-key'),
-  saveApiKey: (apiKey) => ipcRenderer.invoke('save-api-key', apiKey),
+  getAIConfig: () => ipcRenderer.invoke('get-ai-config'),
+  saveAIConfig: (config) => ipcRenderer.invoke('save-ai-config', config),
   getDeveloperMode: () => ipcRenderer.invoke('get-developer-mode'),
   saveDeveloperMode: (developerMode) => ipcRenderer.invoke('save-developer-mode', developerMode),
   askOpenAI: (data) => ipcRenderer.invoke('ask-openai', data),
