@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { backgroundPersonalities } from '../utils/backgroundPersonalities'
+import { backgroundPersonalities, getAvailableBackgrounds } from '../utils/backgroundPersonalities'
+import { useTranslation } from '../contexts/LanguageContext'
 import { 
   classData, 
   raceData, 
@@ -195,7 +196,76 @@ const CharacterCreation = ({
   currentCampaignId = null,
   creationMode = 'guided'
 }) => {
-  const [step, setStep] = useState(0)
+  const { t, language } = useTranslation()
+  const [step, setStep] = useState(1)
+  
+  // Función para traducir habilidades
+  const translateSkill = (skillName) => {
+    const skillMap = {
+      'Perspicacia': 'insight',
+      'Religión': 'religion',
+      'Engaño': 'deception',
+      'Sigilo': 'stealth',
+      'T. con Animales': 'animalHandling',
+      'Supervivencia': 'survival',
+      'C. Arcano': 'arcana',
+      'Historia': 'history',
+      'Atletismo': 'athletics',
+      'Intimidación': 'intimidation',
+      'Persuasión': 'persuasion',
+      'Juego de Manos': 'sleightOfHand',
+      'Medicina': 'medicine',
+      'Investigación': 'investigation',
+      'Naturaleza': 'nature',
+      'Percepción': 'perception',
+      'Interpretación': 'performance',
+      'Acrobacias': 'acrobatics'
+    }
+    const key = skillMap[skillName] || skillName.toLowerCase().replace(/\s+/g, '')
+    return t(`skills.${key}`, skillName)
+  }
+
+  // Función para traducir equipo
+  const translateEquipment = (equipmentName) => {
+    const equipmentMap = {
+      'Pergaminos': 'scrolls',
+      'Ropa de ermitaño': 'hermitClothes',
+      'Dinero (5 po)': 'money5gp',
+      'Herramientas de falsificación': 'forgeryKit',
+      'Ropa fina': 'fineClothes',
+      'Dinero (15 po)': 'money15gp',
+      'Herramientas de ladrón': 'thievesTools',
+      'Dinero (25 po)': 'money25gp',
+      'Herramientas de artista': 'entertainersPack',
+      'Disfraz': 'disguiseKit',
+      'Herramientas de artesano': 'artisansTools',
+      'Carta de presentación': 'letterOfIntroduction',
+      'Herramientas de herrero': 'smithsTools',
+      'Dinero (10 po)': 'money10gp',
+      'Herramientas de navegación': 'navigatorsTools',
+      'Herramientas de soldado': 'soldiersPack',
+      'Herramientas de explorador': 'explorersPack',
+      'Herramientas de diplomático': 'diplomatsPack',
+      'Herramientas de investigador': 'investigatorsPack',
+      'Herramientas de cazador': 'huntersPack',
+      'Herramientas de minero': 'minersPack',
+      'Herramientas de pescador': 'fishersPack',
+      'Herramientas de cocinero': 'cooksUtensils',
+      'Instrumento musical': 'musicalInstrument',
+      'Herramientas de monje': 'monksPack',
+      'Herramientas de mago': 'wizardsPack',
+      'Herramientas de clérigo': 'clericsPack',
+      'Herramientas de druida': 'druidsPack',
+      'Herramientas de guerrero': 'fightersPack',
+      'Herramientas de pícaro': 'roguesPack',
+      'Herramientas de paladín': 'paladinsPack',
+      'Herramientas de hechicero': 'sorcerersPack',
+      'Herramientas de brujo': 'warlocksPack'
+    }
+    const key = equipmentMap[equipmentName]
+    return key ? t(`equipment.backgroundEquipment.${key}`, equipmentName) : equipmentName
+  }
+
   const [personalityMethod, setPersonalityMethod] = useState('custom') // 'custom', 'random', 'select'
   const [availablePoints, setAvailablePoints] = useState(25)
   const [baseStats, setBaseStats] = useState({
@@ -1172,24 +1242,24 @@ const CharacterCreation = ({
       <div className="character-creation">
         <div className="creation-header">
           <h1>DUNGEONS & DRAGONS®</h1>
-          <h2>PASO: INFORMACIÓN BÁSICA</h2>
+          <h2>{t('steps.step0', 'PASO: INFORMACIÓN BÁSICA')}</h2>
         </div>
         
         <div className="step-container">
           <div className="step-header">
-            🎭 INFORMACIÓN DEL PERSONAJE
+            🎭 {t('character.information', 'INFORMACIÓN DEL PERSONAJE')}
           </div>
           <div className="step-content">
             <div className="form-grid">
               {/* Columna 1 - Nombre y Clase */}
               <div className="form-section">
                 <div className="section-header">
-                  👤 NOMBRE Y CLASE
+                  👤 {t('character.nameAndClass', 'NOMBRE Y CLASE')}
                 </div>
                 
                 <div className="form-group">
                   <label className="form-label">
-                    Nombre del Personaje:
+                    {t('character.name')}:
           </label>
                   <div style={{ display: 'flex', alignItems: 'center' }}>
           <input
@@ -1197,7 +1267,7 @@ const CharacterCreation = ({
               value={characterData.name || ''}
               onChange={(e) => handleCharacterDataChange('name', e.target.value)}
                       className="form-input"
-                      placeholder="Ingresa el nombre de tu personaje"
+                      placeholder={t('character.namePlaceholder', 'Ingresa el nombre de tu personaje')}
                       style={{ flex: 1 }}
             />
             <button
@@ -1217,49 +1287,49 @@ const CharacterCreation = ({
 
                 <div className="form-group">
                   <label className="form-label">
-                    Clase:
+                    {t('character.class')}:
           </label>
           <select
             value={characterData.class || ''}
                     onChange={(e) => handleCharacterDataChange('class', e.target.value)}
                     className="form-select"
           >
-            <option value="">Selecciona una clase</option>
-                    <option value="bardo">Bardo</option>
-                    <option value="barbaro">Bárbaro</option>
-                    <option value="guerrero">Guerrero</option>
-                    <option value="clerigo">Clérigo</option>
-                    <option value="druida">Druida</option>
-                    <option value="hechicero">Hechicero</option>
-                    <option value="mago">Mago</option>
-                    <option value="monje">Monje</option>
-                    <option value="paladin">Paladín</option>
-                    <option value="picaro">Pícaro</option>
-                    <option value="ranger">Ranger</option>
-                    <option value="brujo">Brujo</option>
+            <option value="">{t('character.selectClass', 'Selecciona una clase')}</option>
+                    <option value="bardo">{t('classes.bard')}</option>
+                    <option value="barbaro">{t('classes.barbarian')}</option>
+                    <option value="guerrero">{t('classes.fighter')}</option>
+                    <option value="clerigo">{t('classes.cleric')}</option>
+                    <option value="druida">{t('classes.druid')}</option>
+                    <option value="hechicero">{t('classes.sorcerer')}</option>
+                    <option value="mago">{t('classes.wizard')}</option>
+                    <option value="monje">{t('classes.monk')}</option>
+                    <option value="paladin">{t('classes.paladin')}</option>
+                    <option value="picaro">{t('classes.rogue')}</option>
+                    <option value="ranger">{t('classes.ranger')}</option>
+                    <option value="brujo">{t('classes.warlock')}</option>
           </select>
             </div>
 
                 <div className="form-group">
                   <label className="form-label">
-                    Género:
+                    {t('character.gender', 'Género')}:
               </label>
           <select
              value={characterData.gender || ''}
              onChange={(e) => handleCharacterDataChange('gender', e.target.value)}
                     className="form-select"
                   >
-                    <option value="">Selecciona género</option>
-                    <option value="masculino">Masculino</option>
-                    <option value="femenino">Femenino</option>
-                    <option value="no-binario">No binario</option>
-                    <option value="otro">Otro</option>
+                    <option value="">{t('character.selectGender', 'Selecciona género')}</option>
+                    <option value="masculino">{t('genders.male')}</option>
+                    <option value="femenino">{t('genders.female')}</option>
+                    <option value="no-binario">{t('genders.nonBinary')}</option>
+                    <option value="otro">{t('genders.other')}</option>
           </select>
          </div>
 
                 <div className="form-group">
                   <label className="form-label">
-                    Raza:
+                    {t('character.race')}:
            </label>
            <select
              value={characterData.race || ''}
@@ -1270,22 +1340,22 @@ const CharacterCreation = ({
                     }}
                     className="form-select"
            >
-             <option value="">Selecciona una raza</option>
-             <option value="humano">Humano</option>
-             <option value="elfo">Elfo</option>
-             <option value="enano">Enano</option>
-             <option value="mediano">Mediano</option>
-             <option value="dragonborn">Dragonborn</option>
-             <option value="gnomo">Gnomo</option>
-             <option value="semielfo">Semielfo</option>
-             <option value="semiorco">Semiorco</option>
-             <option value="tiefling">Tiefling</option>
+             <option value="">{t('character.selectRace', 'Selecciona una raza')}</option>
+             <option value="humano">{t('races.human')}</option>
+             <option value="elfo">{t('races.elf')}</option>
+             <option value="enano">{t('races.dwarf')}</option>
+             <option value="mediano">{t('races.halfling')}</option>
+             <option value="dragonborn">{t('races.dragonborn')}</option>
+             <option value="gnomo">{t('races.gnome')}</option>
+             <option value="semielfo">{t('races.halfElf')}</option>
+             <option value="semiorco">{t('races.halfOrc')}</option>
+             <option value="tiefling">{t('races.tiefling')}</option>
            </select>
         </div>
 
                 <div className="form-group">
                   <label className="form-label">
-                    Nivel Inicial:
+                    {t('character.initialLevel', 'Nivel Inicial')}:
                   </label>
                                      <select
                      value={initialTargetLevel}
@@ -1297,9 +1367,9 @@ const CharacterCreation = ({
                      }}
                      className="form-select"
                    >
-                     <option value={1}>Nivel 1 (Inicio)</option>
-                     <option value={3}>Nivel 3 (Experiencia)</option>
-                     <option value={5}>Nivel 5 (Heroico)</option>
+                     <option value={1}>{t('levels.level1', 'Nivel 1 (Inicio)')}</option>
+                     <option value={3}>{t('levels.level3', 'Nivel 3 (Experiencia)')}</option>
+                     <option value={5}>{t('levels.level5', 'Nivel 5 (Heroico)')}</option>
                    </select>
                   </div>
                 </div>
@@ -1307,7 +1377,7 @@ const CharacterCreation = ({
               {/* Columna 2 - Trasfondo */}
               <div className="form-section">
                 <div className="section-header">
-                  📚 TRASFONDO
+                  📚 {t('character.background', 'TRASFONDO')}
     </div>
                 
                 <div className="form-group">
@@ -1319,43 +1389,38 @@ const CharacterCreation = ({
             onChange={(e) => handleCharacterDataChange('background', e.target.value)}
                     className="form-select"
           >
-            <option value="">Selecciona un trasfondo</option>
-            <option value="acolito">Acolito</option>
-            <option value="criminal">Criminal</option>
-                    <option value="heroe">Héroe</option>
-                    <option value="sabio">Sabio</option>
-            <option value="soldado">Soldado</option>
-                    <option value="artesano">Artesano</option>
-                    <option value="charlatan">Charlatán</option>
-                    <option value="ermitaño">Ermitaño</option>
-                    <option value="noble">Noble</option>
-                    <option value="salvaje">Salvaje</option>
+            <option value="">{t('character.selectBackground', 'Selecciona un trasfondo')}</option>
+            {getAvailableBackgrounds(language).map(background => (
+              <option key={background.key} value={background.key}>
+                {background.name}
+              </option>
+            ))}
           </select>
         </div>
 
                 {characterData.background && (
                   <div style={{ fontSize: '12px', color: '#666' }}>
-                    <p><strong>Habilidades:</strong> {(getBackgroundSkills(characterData.background) || []).join(', ')}</p>
-                    <p><strong>Equipo:</strong> {(backgroundData[characterData.background]?.equipment || []).join(', ')}</p>
+                    <p><strong>{t('character.skills')}:</strong> {(getBackgroundSkills(characterData.background) || []).map(skill => translateSkill(skill)).join(', ')}</p>
+                    <p><strong>{t('character.equipment')}:</strong> {(backgroundData[characterData.background]?.equipment || []).join(', ')}</p>
                   </div>
                 )}
 
                 <div className="form-group">
                   <label className="form-label">
-                    Nombre del Jugador:
+                    {t('character.player', 'Nombre del Jugador')}:
           </label>
           <input
             type="text"
             value={characterData.playerName || ''}
             onChange={(e) => handleCharacterDataChange('playerName', e.target.value)}
                     className="form-input"
-                    placeholder="Tu nombre como jugador"
+                    placeholder={t('character.playerPlaceholder', 'Tu nombre como jugador')}
           />
         </div>
 
                 <div className="form-group">
                   <label className="form-label">
-                    Alineamiento:
+                    {t('character.alignment')}:
                   </label>
                   <select
                     value={characterData.alignment || ''}
@@ -1363,16 +1428,16 @@ const CharacterCreation = ({
                     className="form-select"
                   >
 
-                    <option value="">Selecciona alineamiento</option>
-                    <option value="Legal Bueno">Legal Bueno</option>
-                    <option value="Neutral Bueno">Neutral Bueno</option>
-                    <option value="Caótico Bueno">Caótico Bueno</option>
-                    <option value="Legal Neutral">Legal Neutral</option>
-                    <option value="Neutral">Neutral</option>
-                    <option value="Caótico Neutral">Caótico Neutral</option>
-                    <option value="Legal Malvado">Legal Malvado</option>
-                    <option value="Neutral Malvado">Neutral Malvado</option>
-                    <option value="Caótico Malvado">Caótico Malvado</option>
+                    <option value="">{t('character.selectAlignment', 'Selecciona alineamiento')}</option>
+                    <option value="lawfulGood">{t('alignments.lawfulGood')}</option>
+                    <option value="neutralGood">{t('alignments.neutralGood')}</option>
+                    <option value="chaoticGood">{t('alignments.chaoticGood')}</option>
+                    <option value="lawfulNeutral">{t('alignments.lawfulNeutral')}</option>
+                    <option value="neutral">{t('alignments.neutral')}</option>
+                    <option value="chaoticNeutral">{t('alignments.chaoticNeutral')}</option>
+                    <option value="lawfulEvil">{t('alignments.lawfulEvil')}</option>
+                    <option value="neutralEvil">{t('alignments.neutralEvil')}</option>
+                    <option value="chaoticEvil">{t('alignments.chaoticEvil')}</option>
                   </select>
       </div>
         </div>
@@ -1391,23 +1456,23 @@ const CharacterCreation = ({
       <div className="character-creation">
         <div className="creation-header">
           <h1>DUNGEONS & DRAGONS®</h1>
-          <h2>PASO: ESTADÍSTICAS</h2>
+          <h2>{t('steps.step1', 'PASO: ESTADÍSTICAS')}</h2>
               </div>
         
         <div className="step-container">
           <div className="step-header">
-                            ⚔️ SISTEMA DE PUNTOS (25 puntos)
+                            ⚔️ {t('character.pointSystem', 'SISTEMA DE PUNTOS')} (25 {t('character.points', 'puntos')})
           </div>
           <div className="step-content">
             {/* Sección de Recomendaciones de Estadísticas - ARRIBA */}
             {characterData.class && (
               <div style={{ marginBottom: '20px' }}>
                 <div className="section-header">
-                  📊 ESTADÍSTICAS RECOMENDADAS
+                  📊 {t('character.recommendedStats', 'ESTADÍSTICAS RECOMENDADAS')}
                 </div>
                 
                 <div style={{ fontSize: '12px', marginBottom: '15px' }}>
-                  <p><strong>Estadísticas óptimas para {classData[characterData.class]?.name}:</strong></p>
+                  <p><strong>{t('character.optimalStatsFor', 'Estadísticas óptimas para')} {classData[characterData.class]?.name}:</strong></p>
                 </div>
 
                 <div style={{ 
@@ -1431,12 +1496,12 @@ const CharacterCreation = ({
                           fontSize: '12px'
                         }}>
                           <span style={{ fontWeight: 'bold', color: '#2c5530' }}>
-                            {stat === 'strength' ? 'Fuerza' :
-                             stat === 'dexterity' ? 'Destreza' :
-                             stat === 'constitution' ? 'Constitución' :
-                             stat === 'intelligence' ? 'Inteligencia' :
-                             stat === 'wisdom' ? 'Sabiduría' :
-                             stat === 'charisma' ? 'Carisma' : stat}:
+                            {stat === 'strength' ? t('attributes.strength') :
+                             stat === 'dexterity' ? t('attributes.dexterity') :
+                             stat === 'constitution' ? t('attributes.constitution') :
+                             stat === 'intelligence' ? t('attributes.intelligence') :
+                             stat === 'wisdom' ? t('attributes.wisdom') :
+                             stat === 'charisma' ? t('attributes.charisma') : stat}:
                           </span>
                           <span style={{ 
                             fontWeight: 'bold',
@@ -1455,7 +1520,7 @@ const CharacterCreation = ({
                     </div>
                   ) : (
                     <div style={{ color: '#666', fontSize: '11px', fontStyle: 'italic', textAlign: 'center' }}>
-                      No hay estadísticas recomendadas para esta clase
+                      {t('character.noRecommendedStats', 'No hay estadísticas recomendadas para esta clase')}
                     </div>
                   )}
                 </div>
@@ -4845,7 +4910,7 @@ const CharacterCreation = ({
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button
                   onClick={() => setStep(step - 1)}
-                  disabled={step === 0}
+                  disabled={step === 1}
                   className="nav-button"
                 >
                   Anterior

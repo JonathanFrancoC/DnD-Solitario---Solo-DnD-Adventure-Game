@@ -2,6 +2,7 @@ const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const Store = require('electron-store')
+const { spawn } = require('child_process')
 
 // Configuración de almacenamiento
 const store = new Store({
@@ -106,7 +107,19 @@ ipcMain.handle('ensure-dir', async (event, relPath) => {
 ipcMain.handle('create-campaign', async (event, { campaignId, campaignName }) => {
   try {
     const campaignPath = path.join(BASE_ROOT, 'saves', campaignId);
-    await fs.promises.mkdir(path.join(campaignPath, 'bitacora'), { recursive: true });
+    
+    // Crear estructura de carpetas
+    const folders = [
+      'character',
+      'companions', 
+      'enemies',
+      'data',
+      'bitacora'
+    ];
+    
+    for (const folder of folders) {
+      await fs.promises.mkdir(path.join(campaignPath, folder), { recursive: true });
+    }
     
     const manifest = {
       campaign: { 
@@ -119,24 +132,28 @@ ipcMain.handle('create-campaign', async (event, { campaignId, campaignName }) =>
     
     await fs.promises.writeFile(path.join(campaignPath, 'manifest.json'), JSON.stringify(manifest, null, 2), 'utf8');
     
-    const emptyFiles = {
-      'character.json': { main_character: null },
-      'companions.json': { companions: [] },
-      'villains.json': { villains: [] },
-      'world_state.json': { world: {} },
-      'game_state.json': { game_state: {} },
+    // Crear archivos iniciales en las carpetas correspondientes
+    const initialFiles = {
+      'data/world_state.json': { world: {} },
+      'data/game_state.json': { game_state: {} },
       'bitacora/daily_logs.json': { logs: [] },
       'bitacora/session_logs.json': { sessions: [] }
     };
     
-    for (const [filename, data] of Object.entries(emptyFiles)) {
+    for (const [filename, data] of Object.entries(initialFiles)) {
       await fs.promises.writeFile(path.join(campaignPath, filename), JSON.stringify(data, null, 2), 'utf8');
     }
     
-    console.log('🎮 NUEVA CAMPAÑA CREADA:');
-    console.log('   📁 Carpeta:', campaignPath);
+    console.log('🎮 NUEVA CAMPAÑA CREADA CON ESTRUCTURA DE CARPETAS:');
+    console.log('   📁 Carpeta principal:', campaignPath);
     console.log('   🆔 ID:', campaignId);
     console.log('   📛 Nombre:', campaignName);
+    console.log('   📂 Estructura creada:');
+    console.log('      - character/ (para personaje principal)');
+    console.log('      - companions/ (para compañeros)');
+    console.log('      - enemies/ (para enemigos)');
+    console.log('      - data/ (datos de la partida)');
+    console.log('      - bitacora/ (logs de sesión)');
     
     return { success: true, path: campaignPath };
   } catch (error) {
@@ -156,9 +173,27 @@ ipcMain.handle('save-json', async (event, { relPath, filename, data }) => {
 
 ipcMain.handle('save-character', async (event, { campaignId, characterData }) => {
   try {
-    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'character.json');
-    const data = { main_character: characterData, saved_at: new Date().toISOString() };
+    // Crear nombre de archivo seguro basado en el nombre del personaje
+    const characterName = characterData.name || 'unknown';
+    const safeFileName = characterName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    const fileName = `${safeFileName}.json`;
+    
+    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'character', fileName);
+    const data = { 
+      main_character: characterData, 
+      saved_at: new Date().toISOString(),
+      character_id: characterData.id || Date.now().toString()
+    };
+    
     await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
+    
+    console.log('👤 PERSONAJE PRINCIPAL GUARDADO:');
+    console.log('   📁 Carpeta: character/');
+    console.log('   📄 Archivo:', fileName);
+    console.log('   👤 Nombre:', characterData.name);
+    console.log('   🎭 Clase:', characterData.class);
+    console.log('   📊 Nivel:', characterData.level);
+    
     return { success: true, path: filePath };
   } catch (error) {
     return { success: false, error: error.message };
@@ -167,10 +202,32 @@ ipcMain.handle('save-character', async (event, { campaignId, characterData }) =>
 
 ipcMain.handle('save-companions', async (event, { campaignId, companions }) => {
   try {
-    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'companions.json');
-    const data = { companions, saved_at: new Date().toISOString() };
-    await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
-    return { success: true, path: filePath };
+    // Guardar cada compañero en un archivo individual
+    const companionsPath = path.join(BASE_ROOT, 'saves', campaignId, 'companions');
+    
+    for (const companion of companions) {
+      const companionName = companion.name || 'unknown';
+      const safeFileName = companionName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      const fileName = `${safeFileName}.json`;
+      
+      const filePath = path.join(companionsPath, fileName);
+      const data = { 
+        companion: companion, 
+        saved_at: new Date().toISOString(),
+        companion_id: companion.id || Date.now().toString()
+      };
+      
+      await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
+    }
+    
+    console.log('👥 COMPAÑEROS GUARDADOS:');
+    console.log('   📁 Carpeta: companions/');
+    console.log('   📊 Total:', companions.length);
+    companions.forEach(comp => {
+      console.log(`      - ${comp.name} (${comp.class})`);
+    });
+    
+    return { success: true, path: companionsPath };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -178,10 +235,32 @@ ipcMain.handle('save-companions', async (event, { campaignId, companions }) => {
 
 ipcMain.handle('save-villains', async (event, { campaignId, villains }) => {
   try {
-    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'villains.json');
-    const data = { villains, saved_at: new Date().toISOString() };
-    await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
-    return { success: true, path: filePath };
+    // Guardar cada villano en un archivo individual
+    const enemiesPath = path.join(BASE_ROOT, 'saves', campaignId, 'enemies');
+    
+    for (const villain of villains) {
+      const villainName = villain.name || 'unknown';
+      const safeFileName = villainName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      const fileName = `${safeFileName}.json`;
+      
+      const filePath = path.join(enemiesPath, fileName);
+      const data = { 
+        villain: villain, 
+        saved_at: new Date().toISOString(),
+        villain_id: villain.id || Date.now().toString()
+      };
+      
+      await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
+    }
+    
+    console.log('👹 ENEMIGOS GUARDADOS:');
+    console.log('   📁 Carpeta: enemies/');
+    console.log('   📊 Total:', villains.length);
+    villains.forEach(villain => {
+      console.log(`      - ${villain.name} (${villain.class || 'NPC'})`);
+    });
+    
+    return { success: true, path: enemiesPath };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -189,9 +268,15 @@ ipcMain.handle('save-villains', async (event, { campaignId, villains }) => {
 
 ipcMain.handle('save-world-state', async (event, { campaignId, worldState }) => {
   try {
-    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'world_state.json');
+    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'data', 'world_state.json');
     const data = { world: worldState, saved_at: new Date().toISOString() };
     await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
+    
+    console.log('🌍 ESTADO DEL MUNDO GUARDADO:');
+    console.log('   📁 Carpeta: data/');
+    console.log('   📄 Archivo: world_state.json');
+    console.log('   📍 Ubicación actual:', worldState?.currentLocation || 'No especificada');
+    
     return { success: true, path: filePath };
   } catch (error) {
     return { success: false, error: error.message };
@@ -200,9 +285,16 @@ ipcMain.handle('save-world-state', async (event, { campaignId, worldState }) => 
 
 ipcMain.handle('save-game-state', async (event, { campaignId, gameState }) => {
   try {
-    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'game_state.json');
+    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'data', 'game_state.json');
     const data = { game_state: gameState, saved_at: new Date().toISOString() };
     await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
+    
+    console.log('🎮 ESTADO DEL JUEGO GUARDADO:');
+    console.log('   📁 Carpeta: data/');
+    console.log('   📄 Archivo: game_state.json');
+    console.log('   💬 Mensajes:', gameState?.messages?.length || 0);
+    console.log('   ⚔️ En combate:', gameState?.combat?.isActive || false);
+    
     return { success: true, path: filePath };
   } catch (error) {
     return { success: false, error: error.message };
@@ -257,9 +349,25 @@ ipcMain.handle('load-json', async (event, { relPath, filename }) => {
 
 ipcMain.handle('load-character', async (event, { campaignId }) => {
   try {
-    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'character.json');
+    const characterPath = path.join(BASE_ROOT, 'saves', campaignId, 'character');
+    
+    // Buscar el primer archivo JSON en la carpeta character
+    const files = await fs.promises.readdir(characterPath);
+    const characterFile = files.find(file => file.endsWith('.json'));
+    
+    if (!characterFile) {
+      return { success: false, error: 'No se encontró archivo de personaje' };
+    }
+    
+    const filePath = path.join(characterPath, characterFile);
     const content = await fs.promises.readFile(filePath, 'utf8');
     const data = JSON.parse(content);
+    
+    console.log('👤 PERSONAJE PRINCIPAL CARGADO:');
+    console.log('   📁 Carpeta: character/');
+    console.log('   📄 Archivo:', characterFile);
+    console.log('   👤 Nombre:', data.main_character?.name);
+    
     return { success: true, data: data.main_character };
   } catch (error) {
     return { success: false, error: error.message };
@@ -268,10 +376,30 @@ ipcMain.handle('load-character', async (event, { campaignId }) => {
 
 ipcMain.handle('load-companions', async (event, { campaignId }) => {
   try {
-    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'companions.json');
-    const content = await fs.promises.readFile(filePath, 'utf8');
-    const data = JSON.parse(content);
-    return { success: true, data: data.companions || [] };
+    const companionsPath = path.join(BASE_ROOT, 'saves', campaignId, 'companions');
+    
+    // Leer todos los archivos JSON en la carpeta companions
+    const files = await fs.promises.readdir(companionsPath);
+    const jsonFiles = files.filter(file => file.endsWith('.json'));
+    
+    const companions = [];
+    for (const file of jsonFiles) {
+      const filePath = path.join(companionsPath, file);
+      const content = await fs.promises.readFile(filePath, 'utf8');
+      const data = JSON.parse(content);
+      if (data.companion) {
+        companions.push(data.companion);
+      }
+    }
+    
+    console.log('👥 COMPAÑEROS CARGADOS:');
+    console.log('   📁 Carpeta: companions/');
+    console.log('   📊 Total:', companions.length);
+    companions.forEach(comp => {
+      console.log(`      - ${comp.name} (${comp.class})`);
+    });
+    
+    return { success: true, data: companions };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -279,10 +407,30 @@ ipcMain.handle('load-companions', async (event, { campaignId }) => {
 
 ipcMain.handle('load-villains', async (event, { campaignId }) => {
   try {
-    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'villains.json');
-    const content = await fs.promises.readFile(filePath, 'utf8');
-    const data = JSON.parse(content);
-    return { success: true, data: data.villains || [] };
+    const enemiesPath = path.join(BASE_ROOT, 'saves', campaignId, 'enemies');
+    
+    // Leer todos los archivos JSON en la carpeta enemies
+    const files = await fs.promises.readdir(enemiesPath);
+    const jsonFiles = files.filter(file => file.endsWith('.json'));
+    
+    const villains = [];
+    for (const file of jsonFiles) {
+      const filePath = path.join(enemiesPath, file);
+      const content = await fs.promises.readFile(filePath, 'utf8');
+      const data = JSON.parse(content);
+      if (data.villain) {
+        villains.push(data.villain);
+      }
+    }
+    
+    console.log('👹 ENEMIGOS CARGADOS:');
+    console.log('   📁 Carpeta: enemies/');
+    console.log('   📊 Total:', villains.length);
+    villains.forEach(villain => {
+      console.log(`      - ${villain.name} (${villain.class || 'NPC'})`);
+    });
+    
+    return { success: true, data: villains };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -290,9 +438,15 @@ ipcMain.handle('load-villains', async (event, { campaignId }) => {
 
 ipcMain.handle('load-world-state', async (event, { campaignId }) => {
   try {
-    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'world_state.json');
+    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'data', 'world_state.json');
     const content = await fs.promises.readFile(filePath, 'utf8');
     const data = JSON.parse(content);
+    
+    console.log('🌍 ESTADO DEL MUNDO CARGADO:');
+    console.log('   📁 Carpeta: data/');
+    console.log('   📄 Archivo: world_state.json');
+    console.log('   📍 Ubicación:', data.world?.currentLocation || 'No especificada');
+    
     return { success: true, data: data.world || {} };
   } catch (error) {
     return { success: false, error: error.message };
@@ -301,9 +455,16 @@ ipcMain.handle('load-world-state', async (event, { campaignId }) => {
 
 ipcMain.handle('load-game-state', async (event, { campaignId }) => {
   try {
-    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'game_state.json');
+    const filePath = path.join(BASE_ROOT, 'saves', campaignId, 'data', 'game_state.json');
     const content = await fs.promises.readFile(filePath, 'utf8');
     const data = JSON.parse(content);
+    
+    console.log('🎮 ESTADO DEL JUEGO CARGADO:');
+    console.log('   📁 Carpeta: data/');
+    console.log('   📄 Archivo: game_state.json');
+    console.log('   💬 Mensajes:', data.game_state?.messages?.length || 0);
+    console.log('   ⚔️ En combate:', data.game_state?.combat?.isActive || false);
+    
     return { success: true, data: data.game_state || {} };
   } catch (error) {
     return { success: false, error: error.message };
@@ -405,6 +566,300 @@ ipcMain.handle('save-developer-mode', (event, developerMode) => {
   store.set('developerMode', developerMode)
   console.log('🔧 Modo desarrollador:', developerMode ? 'ACTIVADO' : 'DESACTIVADO')
   return true
+})
+
+// Función para seleccionar directorio de modelos
+ipcMain.handle('select-model-directory', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory'],
+    title: 'Seleccionar directorio para modelos de Ollama',
+    defaultPath: path.join(app.getPath('home'), '.ollama', 'models')
+  })
+  
+  if (!result.canceled && result.filePaths.length > 0) {
+    return result.filePaths[0]
+  }
+  return null
+})
+
+// Función para descargar modelo de Ollama
+ipcMain.handle('download-ollama-model', async (event, { model, customPath = null }) => {
+  return new Promise((resolve, reject) => {
+    try {
+      // Configurar el directorio de modelos si se especifica uno personalizado
+      const env = { ...process.env }
+      if (customPath) {
+        env.OLLAMA_MODELS = customPath
+      }
+      
+      // Ejecutar ollama pull
+      const ollamaProcess = spawn('ollama', ['pull', model], {
+        env: env,
+        stdio: ['pipe', 'pipe', 'pipe']
+      })
+      
+      let output = ''
+      let errorOutput = ''
+      
+      ollamaProcess.stdout.on('data', (data) => {
+        output += data.toString()
+        // Enviar progreso al renderer
+        mainWindow.webContents.send('ollama-download-progress', {
+          type: 'progress',
+          data: data.toString()
+        })
+      })
+      
+      ollamaProcess.stderr.on('data', (data) => {
+        errorOutput += data.toString()
+        // Enviar errores al renderer
+        mainWindow.webContents.send('ollama-download-progress', {
+          type: 'error',
+          data: data.toString()
+        })
+      })
+      
+      ollamaProcess.on('close', (code) => {
+        if (code === 0) {
+          resolve({
+            success: true,
+            message: `Modelo ${model} descargado exitosamente`,
+            output: output
+          })
+        } else {
+          reject(new Error(`Error descargando modelo: ${errorOutput}`))
+        }
+      })
+      
+      ollamaProcess.on('error', (error) => {
+        reject(new Error(`Error ejecutando ollama pull: ${error.message}`))
+      })
+      
+    } catch (error) {
+      reject(error)
+    }
+  })
+})
+
+// Función para verificar si Ollama está instalado
+ipcMain.handle('check-ollama-installed', async () => {
+  return new Promise((resolve) => {
+    const ollamaProcess = spawn('ollama', ['--version'], {
+      stdio: ['pipe', 'pipe', 'pipe']
+    })
+    
+    ollamaProcess.on('close', (code) => {
+      resolve(code === 0)
+    })
+    
+    ollamaProcess.on('error', () => {
+      resolve(false)
+    })
+  })
+})
+
+// Función para obtener modelos disponibles en Ollama
+ipcMain.handle('get-ollama-models', async () => {
+  return new Promise((resolve, reject) => {
+    const ollamaProcess = spawn('ollama', ['list'], {
+      stdio: ['pipe', 'pipe', 'pipe']
+    })
+    
+    let output = ''
+    let errorOutput = ''
+    
+    ollamaProcess.stdout.on('data', (data) => {
+      output += data.toString()
+    })
+    
+    ollamaProcess.stderr.on('data', (data) => {
+      errorOutput += data.toString()
+    })
+    
+    ollamaProcess.on('close', (code) => {
+      if (code === 0) {
+        // Parsear la salida de ollama list
+        const lines = output.split('\n').filter(line => line.trim())
+        const models = []
+        
+        for (let i = 1; i < lines.length; i++) { // Saltar la primera línea (header)
+          const parts = lines[i].split(/\s+/)
+          if (parts.length >= 2) {
+            models.push({
+              name: parts[0],
+              size: parts[1],
+              modified: parts.slice(2).join(' '),
+              location: 'ollama-default'
+            })
+          }
+        }
+        
+        resolve(models)
+      } else {
+        reject(new Error(`Error obteniendo modelos: ${errorOutput}`))
+      }
+    })
+    
+    ollamaProcess.on('error', (error) => {
+      reject(new Error(`Error ejecutando ollama list: ${error.message}`))
+    })
+  })
+})
+
+// Función para buscar modelos de Ollama en diferentes ubicaciones
+ipcMain.handle('search-ollama-models', async () => {
+  const foundModels = []
+  const searchPaths = [
+    // Ubicaciones por defecto de Ollama
+    path.join(app.getPath('home'), '.ollama', 'models'),
+    path.join(app.getPath('userData'), '.ollama', 'models'),
+    
+    // Ubicaciones comunes en Windows
+    path.join('C:', 'Users', process.env.USERNAME, '.ollama', 'models'),
+    path.join('C:', 'ProgramData', 'Ollama', 'models'),
+    
+    // Ubicaciones comunes en macOS
+    path.join(app.getPath('home'), 'Library', 'Application Support', 'ollama', 'models'),
+    
+    // Ubicaciones comunes en Linux
+    path.join(app.getPath('home'), '.local', 'share', 'ollama', 'models'),
+    path.join('/usr', 'local', 'share', 'ollama', 'models'),
+    path.join('/var', 'lib', 'ollama', 'models')
+  ]
+
+  // Buscar en cada ubicación
+  for (const searchPath of searchPaths) {
+    try {
+      if (fs.existsSync(searchPath)) {
+        const items = await fs.promises.readdir(searchPath, { withFileTypes: true })
+        
+        for (const item of items) {
+          if (item.isDirectory()) {
+            // Filtrar directorios que no son modelos válidos
+            const invalidDirs = ['blobs', 'manifests', 'tmp', 'cache', '.git', 'node_modules']
+            if (invalidDirs.includes(item.name.toLowerCase())) {
+              continue
+            }
+            
+            const modelPath = path.join(searchPath, item.name)
+            const modelInfo = await getModelInfo(modelPath, item.name)
+            if (modelInfo) {
+              foundModels.push({
+                ...modelInfo,
+                location: searchPath,
+                fullPath: modelPath
+              })
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.log(`No se pudo acceder a ${searchPath}:`, error.message)
+    }
+  }
+
+  return foundModels
+})
+
+// Función auxiliar para obtener información de un modelo
+async function getModelInfo(modelPath, modelName) {
+  try {
+    const stats = await fs.promises.stat(modelPath)
+    
+    // Verificar que sea un directorio válido de modelo de Ollama
+    // Los modelos de Ollama suelen tener archivos como "adapter_model.bin", "config.json", etc.
+    const items = await fs.promises.readdir(modelPath)
+    const hasModelFiles = items.some(item => 
+      item.endsWith('.bin') || 
+      item.endsWith('.safetensors') || 
+      item.endsWith('.json') ||
+      item.endsWith('.gguf') ||
+      item.endsWith('.model')
+    )
+    
+    // Si no tiene archivos de modelo, probablemente no es un modelo válido
+    if (!hasModelFiles) {
+      return null
+    }
+    
+    const size = await getDirectorySize(modelPath)
+    
+    return {
+      name: modelName,
+      size: formatBytes(size),
+      modified: stats.mtime.toISOString(),
+      path: modelPath,
+      isDirectory: true
+    }
+  } catch (error) {
+    return null
+  }
+}
+
+// Función para calcular el tamaño de un directorio
+async function getDirectorySize(dirPath) {
+  let totalSize = 0
+  
+  try {
+    const items = await fs.promises.readdir(dirPath, { withFileTypes: true })
+    
+    for (const item of items) {
+      const itemPath = path.join(dirPath, item.name)
+      
+      if (item.isDirectory()) {
+        totalSize += await getDirectorySize(itemPath)
+      } else {
+        const stats = await fs.promises.stat(itemPath)
+        totalSize += stats.size
+      }
+    }
+  } catch (error) {
+    console.log(`Error calculando tamaño de ${dirPath}:`, error.message)
+  }
+  
+  return totalSize
+}
+
+// Función para formatear bytes a formato legible
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B'
+  
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+// Función para usar un modelo existente
+ipcMain.handle('use-existing-model', async (event, { modelPath, modelName }) => {
+  try {
+    // Validar que el modelo sea válido
+    const modelInfo = await getModelInfo(modelPath, modelName)
+    if (!modelInfo) {
+      return {
+        success: false,
+        error: `El directorio ${modelName} no parece ser un modelo válido de Ollama`
+      }
+    }
+    
+    // Configurar la variable de entorno para usar este directorio
+    const modelDir = path.dirname(modelPath)
+    
+    // Guardar la configuración
+    store.set('ollamaModelsPath', modelDir)
+    
+    return {
+      success: true,
+      message: `Modelo ${modelName} configurado desde ${modelDir}`,
+      path: modelDir
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    }
+  }
 })
 
 // Handler para llamadas a OpenAI

@@ -1,6 +1,9 @@
 import React from 'react';
+import { useTranslation } from '../../../contexts/LanguageContext';
 
 export default function StoryPage({ data, onChange, locked = false }) {
+  const { t } = useTranslation();
+  
   return (
     <div className={locked ? 'locked' : ''} style={{ padding: '16px', position:'relative' }}>
       <fieldset disabled={locked} style={{ border:0, padding:0, margin:0 }}>
@@ -19,7 +22,7 @@ export default function StoryPage({ data, onChange, locked = false }) {
          {/* NOMBRE DEL PERSONAJE*/}
          <div>
            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '4px' }}>
-             Nombre del Personaje
+             {t('character.name')}
            </label>
            <input 
              value={data.name || ''}
@@ -34,7 +37,7 @@ export default function StoryPage({ data, onChange, locked = false }) {
            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
              <div>
                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '2px', fontSize: '12px' }}>
-                 Edad
+                 {t('character.age', 'Edad')}
                </label>
                <input 
                  value={data.age || ''}
@@ -44,7 +47,7 @@ export default function StoryPage({ data, onChange, locked = false }) {
              </div>
              <div>
                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '2px', fontSize: '12px' }}>
-                 Altura
+                 {t('character.height', 'Altura')}
                </label>
                <input 
                  value={data.height || ''}
@@ -54,7 +57,7 @@ export default function StoryPage({ data, onChange, locked = false }) {
              </div>
              <div>
                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '2px', fontSize: '12px' }}>
-                 Peso
+                 {t('character.weight', 'Peso')}
                </label>
                <input 
                  value={data.weight || ''}
@@ -68,7 +71,7 @@ export default function StoryPage({ data, onChange, locked = false }) {
            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
              <div>
                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '2px', fontSize: '12px' }}>
-                 Ojos
+                 {t('character.eyes', 'Ojos')}
                </label>
                <input 
                  value={data.eyes || ''}
@@ -78,7 +81,7 @@ export default function StoryPage({ data, onChange, locked = false }) {
              </div>
              <div>
                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '2px', fontSize: '12px' }}>
-                 Piel
+                 {t('character.skin', 'Piel')}
                </label>
                <input 
                  value={data.skin || ''}
@@ -88,7 +91,7 @@ export default function StoryPage({ data, onChange, locked = false }) {
              </div>
              <div>
                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '2px', fontSize: '12px' }}>
-                 Cabello
+                 {t('character.hair', 'Cabello')}
                </label>
                <input 
                  value={data.hair || ''}
@@ -119,7 +122,7 @@ export default function StoryPage({ data, onChange, locked = false }) {
                backgroundColor: '#f9f9f9',
                flex: 1
              }}>
-               <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '16px', textAlign: 'center' }}>Apariencia del Personaje</h3>
+               <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '16px', textAlign: 'center' }}>{t('character.appearance', 'Apariencia del Personaje')}</h3>
                <textarea 
                  value={data.appearance || ''}
                  onChange={e => onChange('appearance', e.target.value)}
@@ -147,7 +150,7 @@ export default function StoryPage({ data, onChange, locked = false }) {
                backgroundColor: '#f9f9f9',
                flex: 1
              }}>
-               <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '16px', textAlign: 'center' }}>Historia del Personaje</h3>
+               <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '16px', textAlign: 'center' }}>{t('character.history', 'Historia del Personaje')}</h3>
                <textarea 
                  value={data.personalHistory || ''}
                  onChange={e => onChange('personalHistory', e.target.value)}
@@ -180,7 +183,7 @@ export default function StoryPage({ data, onChange, locked = false }) {
                position: 'relative',
                flex: 1
              }}>
-               <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '16px', textAlign: 'center' }}>Aliados y Organizaciones</h3>
+               <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '16px', textAlign: 'center' }}>{t('character.allies', 'Aliados y Organizaciones')}</h3>
                
                {/* Cuadro NOMBRE/SIMBOLO arriba a la derecha */}
                <div style={{
@@ -243,7 +246,7 @@ export default function StoryPage({ data, onChange, locked = false }) {
                backgroundColor: '#f9f9f9',
                flex: 1
              }}>
-               <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '16px', textAlign: 'center' }}>Rasgos y Atributos Adicionales</h3>
+               <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '16px', textAlign: 'center' }}>{t('character.additionalTraits', 'Rasgos y Atributos Adicionales')}</h3>
                <textarea 
                  value={data.specialFeatures || ''}
                  onChange={e => onChange('specialFeatures', e.target.value)}
@@ -271,7 +274,7 @@ export default function StoryPage({ data, onChange, locked = false }) {
                backgroundColor: '#f9f9f9',
                flex: 1
              }}>
-               <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '16px', textAlign: 'center' }}>Tesoro</h3>
+               <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '16px', textAlign: 'center' }}>{t('character.treasure', 'Tesoro')}</h3>
                <textarea 
                  value={data.treasure || ''}
                  onChange={e => onChange('treasure', e.target.value)}

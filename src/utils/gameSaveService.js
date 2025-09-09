@@ -92,6 +92,34 @@ class GameSaveService {
     return fsListCampaigns();
   }
 
+  async loadCampaignData(campaignId) {
+    if (!this.isElectron) {
+      throw new Error('Carga de datos de campaña solo disponible en escritorio.');
+    }
+    
+    try {
+      // Cargar todos los datos de la campaña
+      const [character, companions, villains, worldState, gameState] = await Promise.all([
+        this.loadMainCharacter(campaignId),
+        this.loadCompanions(campaignId),
+        this.loadVillains(campaignId),
+        this.loadWorldState(campaignId),
+        this.loadGameState(campaignId)
+      ]);
+
+      return {
+        character,
+        companions,
+        villains,
+        worldState,
+        gameState
+      };
+    } catch (error) {
+      console.error('Error cargando datos de campaña:', error);
+      throw error;
+    }
+  }
+
   // --- Guardados principales -----------------------------------------------
 
   async saveCompanions(companions) {

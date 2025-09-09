@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Send, Save, FolderOpen, Settings, Home, MessageCircle, X, ChevronLeft, ChevronRight, User, Heart, Shield, Sword, Zap, Users as UsersIcon } from 'lucide-react'
 import { sendMessageToDM, sendMessageToAssistant } from '../utils/aiService'
+import { useTranslation } from '../contexts/LanguageContext'
 import gameSaveService from '../utils/gameSaveService'
 import ActionBar from './ActionBar.jsx'
 import { createInitialTurnState, generateAISuggestions, exportStateForAI } from '../utils/turnManager.js'
 
 const GameArea = ({ gameState, updateGameState, onBackToMenu, onShowCharacterSheet, onViewCharacterStats, campaignId = null, gameOptions = {} }) => {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState(gameState?.messages || [])
   const [inputMessage, setInputMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -106,6 +108,12 @@ const GameArea = ({ gameState, updateGameState, onBackToMenu, onShowCharacterShe
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return
+
+    console.log('ENVIANDO MENSAJE A IA:'); // Sending message to AI
+    console.log('   Mensaje:', inputMessage); // Message
+    console.log('   Campaign ID:', campaignId); // Campaign ID
+    console.log('   Game State:', gameState); // Game State
+    console.log('   Personaje:', gameState?.character?.name); // Character
 
     const userMessage = {
       role: 'user',
@@ -1099,7 +1107,7 @@ const GameArea = ({ gameState, updateGameState, onBackToMenu, onShowCharacterShe
                  🎮 D&D Solitario
                </h1>
                <p style={{ margin: '5px 0 0 0', fontSize: '14px', color: '#bdc3c7' }}>
-                 Jugando como {character?.name || 'Sin nombre'} - {gameState?.world?.currentLocation || 'Desconocido'}
+                 {t('game.playingAs')} {character?.name || 'Sin nombre'} - {gameState?.world?.currentLocation || 'Desconocido'}
                </p>
              </div>
              <div style={{ display: 'flex', gap: '10px' }}>
@@ -1331,7 +1339,7 @@ const GameArea = ({ gameState, updateGameState, onBackToMenu, onShowCharacterShe
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Escribe tu mensaje al DM..."
+              placeholder={t('messages.sendMessage')}
               style={{
                 flex: 1,
                 minHeight: '60px',

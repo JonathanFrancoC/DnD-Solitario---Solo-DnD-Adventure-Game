@@ -1,0 +1,88 @@
+{
+  "spells": {
+    "cantrips": {
+      "prestidigitacion": {
+        "name": "Prestidigitación",
+        "description": "Realizas un truco menor de magia arcana. Puedes crear un efecto instantáneo inofensivo, como hacer que una llama parpadee, crear un sonido, o limpiar una mancha.",
+        "damage": null,
+        "damageType": null,
+        "range": "10 pies",
+        "duration": "Instantáneo",
+        "castingTime": "1 acción",
+        "school": "Transmutación"
+      },
+      "mensaje": {
+        "name": "Mensaje",
+        "description": "Susurras un mensaje que solo puede ser escuchado por una criatura específica que elijas dentro del rango.",
+        "damage": null,
+        "damageType": null,
+        "range": "120 pies",
+        "duration": "1 ronda",
+        "castingTime": "1 acción",
+        "school": "Transmutación"
+      },
+      "luz": {
+        "name": "Luz",
+        "description": "Haces que un objeto que puedas ver dentro del rango brille como una antorcha, proporcionando luz brillante en un radio de 20 pies.",
+        "damage": null,
+        "damageType": null,
+        "range": "Toque",
+        "duration": "1 hora",
+        "castingTime": "1 acción",
+        "school": "Evocación"
+      },
+      "vicious_mockery": {
+        "name": "Burlas Viciosas",
+        "description": "Lanzas un insulto mágico a una criatura que puedas ver dentro del rango. Si la criatura puede oírte, debe superar una tirada de salvación de Sabiduría o recibir daño psíquico y tener desventaja en su próximo ataque.",
+        "damage": "1d4",
+        "damageType": "psíquico",
+        "range": "60 pies",
+        "duration": "Instantáneo",
+        "castingTime": "1 acción",
+        "school": "Encantamiento"
+      },
+      "fire_bolt": {
+        "name": "Rayo de Fuego",
+        "description": "Lanzas una llama a una criatura u objeto dentro del rango. Haz un ataque de conjuro a distancia contra el objetivo.",
+        "damage": "1d10",
+        "damageType": "fuego",
+        "range": "120 pies",
+        "duration": "Instantáneo",
+        "castingTime": "1 acción",
+        "school": "Evocación"
+      }
+    },
+    "level1": {
+      "cure_wounds": {
+        "name": "Curar Heridas",
+        "description": "Una criatura que toques recupera una cantidad de puntos de vida igual a 1d8 + tu modificador de característica de lanzamiento de conjuros.",
+        "damage": "1d8 + modificador",
+        "damageType": "curación",
+        "range": "Toque",
+        "duration": "Instantáneo",
+        "castingTime": "1 acción",
+        "school": "Evocación"
+      },
+      "magic_missile": {
+        "name": "Proyectil Mágico",
+        "description": "Creas tres dardos brillantes de fuerza mágica. Cada dardo golpea a una criatura de tu elección que puedas ver dentro del rango.",
+        "damage": "1d4 + 1 por dardo",
+        "damageType": "fuerza",
+        "range": "120 pies",
+        "duration": "Instantáneo",
+        "castingTime": "1 acción",
+        "school": "Evocación"
+      },
+      "shield": {
+        "name": "Escudo",
+        "description": "Aparece una barrera invisible de fuerza mágica que te protege. Hasta el inicio de tu próximo turno, tienes un bonus de +5 a la CA, incluyendo contra el ataque que activó la reacción.",
+        "damage": null,
+        "damageType": null,
+        "range": "Personal",
+        "duration": "1 ronda",
+        "castingTime": "1 reacción",
+        "school": "Abjuración"
+      }
+    }
+  }
+}

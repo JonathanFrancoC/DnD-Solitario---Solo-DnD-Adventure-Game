@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { useTranslation } from '../../../contexts/LanguageContext';
 import spellsJson from '../../../data/spells.json';
 import { getSpellsKnown, getCantripsKnown } from '../../../data/spellcastingData';
 
 export default function SpellsPage({ data, onChange, locked = false }) {
+  const { t } = useTranslation();
   const [expandedSpells, setExpandedSpells] = useState({});
   const [selectedSpell, setSelectedSpell] = useState(null);
   const [showSpellModal, setShowSpellModal] = useState(false);
@@ -161,7 +163,7 @@ export default function SpellsPage({ data, onChange, locked = false }) {
            backgroundColor: '#f9f9f9',
            marginBottom: '20px'
          }}>
-           <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '16px', textAlign: 'center' }}>Información de Conjuros</h3>
+           <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '16px', textAlign: 'center' }}>{t('spells.information', 'Información de Conjuros')}</h3>
            
            {/* Nota explicativa sobre límites */}
            <div style={{ 
@@ -229,7 +231,7 @@ export default function SpellsPage({ data, onChange, locked = false }) {
                borderRadius: '8px',
                backgroundColor: '#f9f9f9'
              }}>
-               <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '14px', textAlign: 'center' }}>Conjuros de Nivel 0 (Trucos)</h3>
+               <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '14px', textAlign: 'center' }}>{t('spells.cantrips', 'Conjuros de Nivel 0 (Trucos)')}</h3>
                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
                  <div>
                    <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '4px', fontSize: '10px' }}>Conocidos</label>

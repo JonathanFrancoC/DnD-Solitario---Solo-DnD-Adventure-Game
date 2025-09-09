@@ -58,8 +58,140 @@ const callOllama = async (message, systemPrompt, ollamaUrl = 'http://localhost:1
   }
 };
 
+// Función para reconocer funciones específicas del juego en el mensaje del jugador
+const recognizeGameFunctions = (message, gameState) => {
+  const functions = {
+    diceRolls: [],
+    combatActions: [],
+    characterActions: [],
+    worldInteractions: [],
+    narrativeElements: []
+  };
+
+  // Reconocer tiradas de dados
+  const dicePattern = /tir[ao]?\s+(\d*d\d+(?:\+\d+)?)/gi;
+  const diceMatches = message.match(dicePattern);
+  if (diceMatches) {
+    functions.diceRolls = diceMatches.map(match => ({
+      type: 'dice_roll',
+      notation: match,
+      context: 'player_requested'
+    }));
+  }
+
+  // Reconocer acciones de combate
+  const combatActions = ['atacar', 'defender', 'esquivar', 'correr', 'desenganchar', 'ayudar', 'ocultarse', 'empujar'];
+  combatActions.forEach(action => {
+    if (message.toLowerCase().includes(action)) {
+      functions.combatActions.push({
+        type: 'combat_action',
+        action: action,
+        context: 'player_declared'
+      });
+    }
+  });
+
+  // Reconocer habilidades de clase
+  const classAbilities = ['furia', 'ki', 'inspiración', 'castigo divino', 'ataque furtivo', 'second wind'];
+  classAbilities.forEach(ability => {
+    if (message.toLowerCase().includes(ability)) {
+      functions.characterActions.push({
+        type: 'class_ability',
+        ability: ability,
+        context: 'player_activated'
+      });
+    }
+  });
+
+  // Reconocer interacciones con el mundo
+  const worldInteractions = ['explorar', 'investigar', 'hablar', 'negociar', 'robar', 'persuadir', 'intimidar'];
+  worldInteractions.forEach(interaction => {
+    if (message.toLowerCase().includes(interaction)) {
+      functions.worldInteractions.push({
+        type: 'world_interaction',
+        interaction: interaction,
+        context: 'player_initiated'
+      });
+    }
+  });
+
+  return functions;
+};
+
+// Función para generar contexto específico basado en las funciones reconocidas
+const generateFunctionContext = (recognizedFunctions, gameState) => {
+  let context = '';
+
+  if (recognizedFunctions.diceRolls.length > 0) {
+    context += '\n## TIROS DE DADOS SOLICITADOS:\n';
+    recognizedFunctions.diceRolls.forEach(roll => {
+      context += `- ${roll.notation}: Solicitud del jugador\n`;
+    });
+    context += 'IMPORTANTE: Procesa estas tiradas y proporciona resultados detallados.\n';
+  }
+
+  if (recognizedFunctions.combatActions.length > 0) {
+    context += '\n## ACCIONES DE COMBATE:\n';
+    recognizedFunctions.combatActions.forEach(action => {
+      context += `- ${action.action}: Acción declarada por el jugador\n`;
+    });
+    context += 'IMPORTANTE: Resuelve estas acciones según las reglas de D&D 5e.\n';
+  }
+
+  if (recognizedFunctions.characterActions.length > 0) {
+    context += '\n## HABILIDADES DE CLASE ACTIVADAS:\n';
+    recognizedFunctions.characterActions.forEach(ability => {
+      context += `- ${ability.ability}: Habilidad activada por el jugador\n`;
+    });
+    context += 'IMPORTANTE: Aplica los efectos de estas habilidades correctamente.\n';
+  }
+
+  if (recognizedFunctions.worldInteractions.length > 0) {
+    context += '\n## INTERACCIONES CON EL MUNDO:\n';
+    recognizedFunctions.worldInteractions.forEach(interaction => {
+      context += `- ${interaction.interaction}: Interacción iniciada por el jugador\n`;
+    });
+    context += 'IMPORTANTE: Resuelve estas interacciones con consecuencias apropiadas.\n';
+  }
+
+  return context;
+};
+
 // Prompt maestro detallado para el DM
 const DM_PROMPT_BASE = `Eres un Dungeon Master (DM) experto de D&D 5ª edición para una campaña en solitario. Sigue estrictamente estas reglas:
+
+## FUNCIONES DISPONIBLES DEL JUEGO:
+Puedes usar estas funciones específicas del juego para mejorar la experiencia:
+
+### FUNCIONES DE DADOS:
+- **TIRAR DADOS**: Cuando necesites una tirada, usa el formato: "Tira [tipo de dado] para [acción]"
+  - Ejemplo: "Tira 1d20 para atacar" o "Tira 2d6+3 para daño"
+  - Tipos disponibles: d4, d6, d8, d10, d12, d20, d100
+- **TIROS DE SALVACIÓN**: "Tira 1d20 + [modificador] para salvar de [efecto]"
+- **TIROS DE HABILIDAD**: "Tira 1d20 + [modificador] para [habilidad]"
+
+### FUNCIONES DE COMBATE:
+- **INICIATIVA**: "Todos tiran iniciativa (1d20 + modificador de Destreza)"
+- **ATAQUES**: "Tira 1d20 + [modificador de ataque] para golpear"
+- **DAÑO**: "Tira [dados de daño] + [modificador] de daño"
+- **CONDICIONES**: Aplica condiciones como "prone", "grappled", "frightened", etc.
+
+### FUNCIONES DE PERSONAJE:
+- **HABILIDADES DE CLASE**: Reconoce y usa habilidades específicas de cada clase
+- **RECURSOS**: Gestiona puntos de vida, slots de conjuros, ki, furia, etc.
+- **EQUIPO**: Considera armas, armadura, objetos mágicos en las acciones
+
+### FUNCIONES DE MUNDO:
+- **UBICACIÓN**: Mantén coherencia con la ubicación actual
+- **TIEMPO**: Rastrea el paso del tiempo (días, horas, clima)
+- **PNJs**: Mantén personalidades y memorias de personajes no jugadores
+- **FACCIONES**: Avanza los planes de facciones según las acciones del jugador
+
+### FUNCIONES DE NARRATIVA:
+- **DESCRIPCIONES**: Proporciona descripciones ricas del entorno
+- **DIÁLOGOS**: Crea diálogos naturales para PNJs
+- **CONSECUENCIAS**: Aplica consecuencias lógicas a las acciones
+- **PROGRESIÓN**: Sugiere hitos narrativos para subir de nivel
 
 ## 0) PRINCIPIOS FUNDAMENTALES
 - **Fidelidad 5e (RAW)**: Combate, habilidades, descansos, condiciones, muerte según reglas oficiales
@@ -482,18 +614,73 @@ const generatePromptModifiers = (gameOptions = {}) => {
 
 // Función para obtener el estado completo de la campaña
 async function getCampaignState(campaignId) {
-  // El estado de la campaña se maneja directamente desde el componente principal
-  // que tiene acceso al sistema de archivos de Electron
-  return {
-    campaign: null,
-    characters: [],
-    worldState: null,
-    error: 'Estado de campaña manejado por el componente principal'
-  };
+  try {
+      console.log('CARGANDO ESTADO DE CAMPAÑA:', campaignId); // Loading campaign state
+      
+      if (!window.electronAPI || !campaignId) {
+        console.log('No hay campaña activa o no estamos en Electron'); // No active campaign or not in Electron
+      return {
+        campaign: null,
+        characters: [],
+        worldState: null,
+        error: 'No hay campaña activa o no estamos en Electron'
+      };
+    }
+
+      // Importar el servicio de guardado / Import save service
+      const gameSaveService = (await import('./gameSaveService.js')).default;
+      
+      console.log('Cargando datos de la campaña...'); // Loading campaign data
+    
+    // Cargar todos los datos de la campaña
+    const [character, companions, villains, worldState, gameState] = await Promise.all([
+      gameSaveService.loadMainCharacter(campaignId),
+      gameSaveService.loadCompanions(campaignId),
+      gameSaveService.loadVillains(campaignId),
+      gameSaveService.loadWorldState(campaignId),
+      gameSaveService.loadGameState(campaignId)
+    ]);
+
+      console.log('DATOS CARGADOS:'); // Data loaded
+      console.log('   Personaje:', character?.name || 'No encontrado'); // Character: [name] or Not found
+      console.log('   Compañeros:', companions?.length || 0); // Companions: [count]
+      console.log('   Enemigos:', villains?.length || 0); // Enemies: [count]
+      console.log('   Estado del mundo:', Object.keys(worldState || {}).length > 0 ? 'Cargado' : 'Vacío'); // World state: Loaded/Empty
+      console.log('   Estado del juego:', Object.keys(gameState || {}).length > 0 ? 'Cargado' : 'Vacío'); // Game state: Loaded/Empty
+
+    const result = {
+      campaign: {
+        id: campaignId,
+        character: character,
+        companions: companions || [],
+        villains: villains || [],
+        worldState: worldState || {},
+        gameState: gameState || {}
+      },
+      characters: [character, ...(companions || [])].filter(Boolean),
+      worldState: worldState || {},
+      gameState: gameState || {},
+      error: null
+    };
+
+    console.log('ESTADO DE CAMPAÑA COMPLETO:', result); // Complete campaign state
+    return result;
+  } catch (error) {
+    console.error('Error cargando estado de campaña:', error); // Error loading campaign state
+    return {
+      campaign: null,
+      characters: [],
+      worldState: null,
+      error: `Error cargando campaña: ${error.message}`
+    };
+  }
 }
 
 // Importar el generador de personajes de IA
 import aiCharacterGenerator from './aiCharacterGenerator.js';
+
+// Importar funciones específicas del juego para Ollama
+import { recognizeGameFunction, generateFunctionPrompt, validateFunctionContext, getContextualFunctionSuggestions } from './ollamaGameFunctions.js';
 
 // Prompt para el asistente
 const ASSISTANT_PROMPT = `Eres un asistente experto en D&D 5e. Tu trabajo es:
@@ -557,21 +744,77 @@ export const sendMessageToDM = async (message, gameState, campaignId = null, gam
     // Obtener estado completo de la campaña si hay una activa
     let campaignState = null;
     if (campaignId) {
+      console.log('OBTENIENDO ESTADO DE CAMPAÑA PARA IA:', campaignId); // Getting campaign state for AI
+      console.log('Verificando si window.electronAPI está disponible:', !!window.electronAPI); // Checking if window.electronAPI is available
       campaignState = await getCampaignState(campaignId);
+      console.log('ESTADO DE CAMPAÑA OBTENIDO:', campaignState); // Campaign state obtained
+    } else {
+      console.log('No hay campaignId proporcionado'); // No campaignId provided
+      console.log('gameState recibido:', gameState); // gameState received
     }
     
     // Combinar el estado del juego con el estado de la campaña
     const fullGameState = {
       ...gameState,
-      campaign: campaignState
+      campaign: campaignState,
+      // Asegurar que el personaje esté disponible en el nivel principal
+      character: gameState?.character || campaignState?.character,
+      // Asegurar que los datos de la campaña estén disponibles
+      campaignData: campaignState
     };
+    
+    console.log('ESTADO COMPLETO PARA IA:', fullGameState); // Complete state for AI
+    console.log('VERIFICACIÓN DE ESTRUCTURA:'); // Structure verification
+    console.log('   fullGameState.character:', fullGameState.character?.name);
+    console.log('   fullGameState.campaign:', fullGameState.campaign ? 'Presente' : 'Ausente'); // Present : Absent
+    console.log('   fullGameState.campaignData:', fullGameState.campaignData ? 'Presente' : 'Ausente'); // Present : Absent
+    
+    // Reconocer funciones específicas del juego en el mensaje
+    const recognizedFunctions = recognizeGameFunction(message);
+    const functionContext = generateFunctionPrompt(recognizedFunctions, fullGameState);
+    
+    // Obtener sugerencias contextuales
+    const contextualSuggestions = getContextualFunctionSuggestions(fullGameState);
     
     // Generar modificadores de prompt basados en las opciones
     const promptModifiers = generatePromptModifiers(gameOptions);
     
-    // Combinar el prompt base con los modificadores
-    let systemPrompt = DM_PROMPT_BASE + promptModifiers + 
-      `Estado actual del juego:\n${JSON.stringify(fullGameState, null, 2)}`;
+    // Crear una sección específica para la información del personaje / Create specific section for character information
+    let characterInfoSection = '';
+    if (fullGameState?.character) {
+      characterInfoSection = `\n\n## INFORMACIÓN DEL PERSONAJE PRINCIPAL - ACCESO DIRECTO:
+**NOMBRE:** ${fullGameState.character.name}
+**CLASE:** ${fullGameState.character.class}
+**RAZA:** ${fullGameState.character.race}
+**NIVEL:** ${fullGameState.character.level}
+**PUNTOS DE VIDA:** ${fullGameState.character.currentHP}/${fullGameState.character.maxHP}
+**CLASE DE ARMADURA:** ${fullGameState.character.armorClass}
+**CARACTERÍSTICAS:**
+- Fuerza: ${fullGameState.character.strength} (Mod: ${Math.floor((fullGameState.character.strength - 10) / 2)})
+- Destreza: ${fullGameState.character.dexterity} (Mod: ${Math.floor((fullGameState.character.dexterity - 10) / 2)})
+- Constitución: ${fullGameState.character.constitution} (Mod: ${Math.floor((fullGameState.character.constitution - 10) / 2)})
+- Inteligencia: ${fullGameState.character.intelligence} (Mod: ${Math.floor((fullGameState.character.intelligence - 10) / 2)})
+- Sabiduría: ${fullGameState.character.wisdom} (Mod: ${Math.floor((fullGameState.character.wisdom - 10) / 2)})
+- Carisma: ${fullGameState.character.charisma} (Mod: ${Math.floor((fullGameState.character.charisma - 10) / 2)})
+
+**INSTRUCCIÓN CRÍTICA:** Tienes acceso COMPLETO a la información de ${fullGameState.character.name}. Cuando el jugador pregunte sobre su personaje, usa esta información. NO digas que no tienes acceso.`;
+    }
+
+    // Crear instrucción inicial clara / Create clear initial instruction
+    const initialInstruction = fullGameState?.character ? 
+      `\n\nINSTRUCCIÓN INICIAL CRÍTICA: Tienes acceso COMPLETO a la información del personaje ${fullGameState.character.name}. Cuando el jugador pregunte sobre su personaje, usa la información proporcionada. NO digas que no tienes acceso.\n\n` : '';
+
+    // Combinar el prompt base con los modificadores y contexto de funciones
+    let systemPrompt = initialInstruction + DM_PROMPT_BASE + promptModifiers + functionContext + characterInfoSection + 
+      `\n\nEstado actual del juego:\n${JSON.stringify(fullGameState, null, 2)}`;
+
+    console.log('PROMPT DEL SISTEMA CONSTRUIDO:'); // System prompt constructed
+    console.log('   Tamaño del prompt:', systemPrompt.length, 'caracteres'); // Prompt size in characters
+    console.log('   Personaje en fullGameState:', fullGameState?.character?.name); // Character in fullGameState
+    console.log('   Campaña en fullGameState:', fullGameState?.campaign?.character?.name); // Campaign in fullGameState
+    console.log('   Sección de personaje incluida:', characterInfoSection ? 'Sí' : 'No'); // Character section included: Yes/No
+    console.log('   Instrucción inicial incluida:', initialInstruction ? 'Sí' : 'No'); // Initial instruction included: Yes/No
+    console.log('   Primeros 200 caracteres del prompt:', systemPrompt.substring(0, 200)); // First 200 characters of prompt
 
     // Agregar información del estado del turno si está disponible
     if (gameOptions.turnState) {
@@ -612,6 +855,18 @@ export const sendMessageToDM = async (message, gameState, campaignId = null, gam
       }
     }
 
+    // Agregar información sobre funciones reconocidas
+    if (recognizedFunctions.length > 0) {
+      systemPrompt += `\n\nFUNCIONES RECONOCIDAS EN EL MENSAJE:\n${JSON.stringify(recognizedFunctions, null, 2)}`;
+      systemPrompt += `\n\nINSTRUCCIONES ESPECIALES:\n- Procesa las funciones reconocidas de manera prioritaria\n- Proporciona respuestas específicas para cada función identificada\n- Mantén coherencia con las reglas de D&D 5e para cada función`;
+    }
+    
+    // Agregar sugerencias contextuales
+    if (contextualSuggestions.length > 0) {
+      systemPrompt += `\n\nSUGERENCIAS CONTEXTUALES DISPONIBLES:\n${JSON.stringify(contextualSuggestions, null, 2)}`;
+      systemPrompt += `\n\nNOTA: Estas son sugerencias basadas en el contexto actual. Puedes mencionarlas si son relevantes.`;
+    }
+
     // Elegir proveedor de IA
     if (aiConfig.provider === 'ollama') {
       // Usar Ollama
@@ -619,11 +874,39 @@ export const sendMessageToDM = async (message, gameState, campaignId = null, gam
         return `❌ Error: URL de Ollama no configurada.\n\nPor favor, configura la URL de Ollama en las opciones (por defecto: http://localhost:11434)`;
       }
       
+      // Obtener modo desarrollador para Ollama
+      let finalSystemPrompt = systemPrompt;
+      if (window.electronAPI) {
+        try {
+          const developerMode = await window.electronAPI.getDeveloperMode();
+          if (developerMode) {
+            finalSystemPrompt += `\n\n🔧 MODO DESARROLLADOR ACTIVADO 🔧
+            
+ESTÁS EN MODO DE PRUEBAS - EL PROGRAMADOR TE VA A HABLAR
+
+INSTRUCCIONES ESPECIALES PARA MODO DESARROLLADOR:
+- El usuario que te está hablando es el programador desarrollando el juego
+- Puede hacer preguntas directas sobre mecánicas, bugs, o funcionalidades
+- Responde de manera técnica pero clara sobre el funcionamiento del sistema
+- Si detectas problemas en las mecánicas, explícalos detalladamente
+- Proporciona sugerencias de mejora cuando sea apropiado
+- Puedes ser más directo y técnico en tus respuestas
+- No necesitas mantener el rol de DM si el programador hace preguntas técnicas
+- Ayuda a identificar problemas en las reglas de D&D 5e implementadas
+- Sugiere mejoras en la implementación de mecánicas del juego
+
+RECUERDA: En modo desarrollador, tu objetivo principal es ayudar al programador a mejorar el juego.`;
+          }
+        } catch (error) {
+          console.error('Error obteniendo modo desarrollador:', error);
+        }
+      }
+      
       try {
-        const response = await callOllama(message, systemPrompt, aiConfig.ollamaUrl, aiConfig.ollamaModel || 'llama3.2');
+        const response = await callOllama(message, finalSystemPrompt, aiConfig.ollamaUrl, aiConfig.ollamaModel || 'llama3.2');
         return response;
       } catch (error) {
-        return `❌ Error al comunicarse con Ollama: ${error.message}\n\nAsegúrate de que:\n1. Ollama esté instalado y ejecutándose\n2. El modelo ${aiConfig.ollamaModel || 'llama3.2'} esté descargado\n3. La URL ${aiConfig.ollamaUrl} sea correcta`;
+        return handleOllamaError(error, aiConfig.ollamaUrl, aiConfig.ollamaModel || 'llama3.2');
       }
     } else {
       // Usar OpenAI (método original)
@@ -694,11 +977,39 @@ export const sendMessageToAssistant = async (message, gameState, campaignId = nu
         return `❌ Error: URL de Ollama no configurada.\n\nPor favor, configura la URL de Ollama en las opciones (por defecto: http://localhost:11434)`;
       }
       
+      // Obtener modo desarrollador para Ollama
+      let finalSystemPrompt = systemPrompt;
+      if (window.electronAPI) {
+        try {
+          const developerMode = await window.electronAPI.getDeveloperMode();
+          if (developerMode) {
+            finalSystemPrompt += `\n\n🔧 MODO DESARROLLADOR ACTIVADO 🔧
+            
+ESTÁS EN MODO DE PRUEBAS - EL PROGRAMADOR TE VA A HABLAR
+
+INSTRUCCIONES ESPECIALES PARA MODO DESARROLLADOR:
+- El usuario que te está hablando es el programador desarrollando el juego
+- Puede hacer preguntas directas sobre mecánicas, bugs, o funcionalidades
+- Responde de manera técnica pero clara sobre el funcionamiento del sistema
+- Si detectas problemas en las mecánicas, explícalos detalladamente
+- Proporciona sugerencias de mejora cuando sea apropiado
+- Puedes ser más directo y técnico en tus respuestas
+- No necesitas mantener el rol de asistente si el programador hace preguntas técnicas
+- Ayuda a identificar problemas en las reglas de D&D 5e implementadas
+- Sugiere mejoras en la implementación de mecánicas del juego
+
+RECUERDA: En modo desarrollador, tu objetivo principal es ayudar al programador a mejorar el juego.`;
+          }
+        } catch (error) {
+          console.error('Error obteniendo modo desarrollador:', error);
+        }
+      }
+      
       try {
-        const response = await callOllama(message, systemPrompt, aiConfig.ollamaUrl, aiConfig.ollamaModel || 'llama3.2');
+        const response = await callOllama(message, finalSystemPrompt, aiConfig.ollamaUrl, aiConfig.ollamaModel || 'llama3.2');
         return response;
       } catch (error) {
-        return `❌ Error al comunicarse con Ollama: ${error.message}\n\nAsegúrate de que:\n1. Ollama esté instalado y ejecutándose\n2. El modelo ${aiConfig.ollamaModel || 'llama3.2'} esté descargado\n3. La URL ${aiConfig.ollamaUrl} sea correcta`;
+        return handleOllamaError(error, aiConfig.ollamaUrl, aiConfig.ollamaModel || 'llama3.2');
       }
     } else {
       // Usar OpenAI (método original)
@@ -799,6 +1110,115 @@ export const validateAIConfig = async () => {
   } catch (error) {
     return false;
   }
+}
+
+// Función para validar y diagnosticar problemas con Ollama
+export const diagnoseOllamaConnection = async (ollamaUrl, model) => {
+  const diagnostics = {
+    connection: false,
+    model: false,
+    response: false,
+    errors: []
+  };
+
+  try {
+    // Probar conexión básica
+    const healthResponse = await fetch(`${ollamaUrl}/api/tags`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    if (healthResponse.ok) {
+      diagnostics.connection = true;
+      
+      // Verificar si el modelo está disponible
+      const tagsData = await healthResponse.json();
+      const availableModels = tagsData.models || [];
+      const modelExists = availableModels.some(m => m.name.includes(model));
+      
+      if (modelExists) {
+        diagnostics.model = true;
+        
+        // Probar respuesta del modelo
+        try {
+          const testResponse = await callOllama(
+            'Responde solo "OK" si puedes entender este mensaje.',
+            'Eres un asistente de prueba. Responde solo "OK" si puedes entender el mensaje.',
+            ollamaUrl,
+            model
+          );
+          
+          if (testResponse && testResponse.toLowerCase().includes('ok')) {
+            diagnostics.response = true;
+          } else {
+            diagnostics.errors.push('El modelo responde pero no de manera esperada');
+          }
+        } catch (error) {
+          diagnostics.errors.push(`Error en respuesta del modelo: ${error.message}`);
+        }
+      } else {
+        diagnostics.errors.push(`Modelo '${model}' no encontrado. Modelos disponibles: ${availableModels.map(m => m.name).join(', ')}`);
+      }
+    } else {
+      diagnostics.errors.push(`Error de conexión: ${healthResponse.status} ${healthResponse.statusText}`);
+    }
+  } catch (error) {
+    diagnostics.errors.push(`Error de red: ${error.message}`);
+  }
+
+  return diagnostics;
+}
+
+// Función para obtener información detallada de Ollama
+export const getOllamaInfo = async (ollamaUrl) => {
+  try {
+    const response = await fetch(`${ollamaUrl}/api/tags`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return {
+        success: true,
+        models: data.models || [],
+        version: data.version || 'Desconocida'
+      };
+    } else {
+      return {
+        success: false,
+        error: `Error ${response.status}: ${response.statusText}`
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+// Función para manejar errores específicos de Ollama
+export const handleOllamaError = (error, ollamaUrl, model) => {
+  const errorMessage = error.message.toLowerCase();
+  
+  if (errorMessage.includes('fetch')) {
+    return `❌ Error de conexión con Ollama en ${ollamaUrl}\n\nPosibles soluciones:\n1. Verifica que Ollama esté ejecutándose\n2. Comprueba que la URL sea correcta\n3. Asegúrate de que el puerto 11434 esté abierto`;
+  }
+  
+  if (errorMessage.includes('404')) {
+    return `❌ Modelo '${model}' no encontrado\n\nPosibles soluciones:\n1. Descarga el modelo: ollama pull ${model}\n2. Verifica el nombre del modelo\n3. Lista modelos disponibles: ollama list`;
+  }
+  
+  if (errorMessage.includes('500')) {
+    return `❌ Error interno del servidor Ollama\n\nPosibles soluciones:\n1. Reinicia Ollama\n2. Verifica que el modelo esté completamente descargado\n3. Comprueba los logs de Ollama`;
+  }
+  
+  if (errorMessage.includes('timeout')) {
+    return `❌ Timeout en la respuesta de Ollama\n\nPosibles soluciones:\n1. El modelo puede estar sobrecargado\n2. Intenta con un modelo más pequeño\n3. Aumenta el timeout en la configuración`;
+  }
+  
+  return `❌ Error desconocido con Ollama: ${error.message}\n\nVerifica la configuración y el estado del servidor Ollama`;
 }
 
 // Funciones para aplicaciones de escritorio

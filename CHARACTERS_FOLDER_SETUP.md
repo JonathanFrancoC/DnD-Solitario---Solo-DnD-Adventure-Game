@@ -96,17 +96,17 @@ La aplicación detecta automáticamente el entorno:
 
 La interfaz muestra el sistema de archivos cuando está disponible:
 
-- 💾 **Sistema de Archivos Activo**: Verde - Personajes se guardan en archivos JSON
+-  **Sistema de Archivos Activo**: Verde - Personajes se guardan en archivos JSON
 - Cuando no está disponible, funciona silenciosamente con almacenamiento local
 
 ### Operaciones Soportadas
 
-- ✅ Guardar personaje nuevo
-- ✅ Cargar personaje existente
-- ✅ Actualizar personaje
-- ✅ Eliminar personaje
-- ✅ Exportar a JSON
-- ✅ Importar desde JSON
+- Guardar personaje nuevo
+- Cargar personaje existente
+- Actualizar personaje
+- Eliminar personaje
+- Exportar a JSON
+- Importar desde JSON
 
 ## Ventajas del Sistema
 

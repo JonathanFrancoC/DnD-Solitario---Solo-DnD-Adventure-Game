@@ -1,0 +1,89 @@
+{
+  "spells": {
+    "cantrips": {
+      "prestidigitacion": {
+        "name": "Prestidigitation",
+        "description": "You perform a minor magical trick. You can create an instantaneous, harmless sensory effect, such as making a flame flicker, creating a sound, or cleaning a stain.",
+        "damage": null,
+        "damageType": null,
+        "range": "10 feet",
+        "duration": "Instantaneous",
+        "castingTime": "1 action",
+        "school": "Transmutation"
+      },
+      "mensaje": {
+        "name": "Message",
+        "description": "You whisper a message that can only be heard by a specific creature you choose within range.",
+        "damage": null,
+        "damageType": null,
+        "range": "120 feet",
+        "duration": "1 round",
+        "castingTime": "1 action",
+        "school": "Transmutation"
+      },
+      "luz": {
+        "name": "Light",
+        "description": "You touch one object that is no larger than 10 feet in any dimension. Until the spell ends, the object sheds bright light in a 20-foot radius.",
+        "damage": null,
+        "damageType": null,
+        "range": "Touch",
+        "duration": "1 hour",
+        "castingTime": "1 action",
+        "school": "Evocation"
+      },
+      "vicious_mockery": {
+        "name": "Vicious Mockery",
+        "description": "You unleash a string of insults laced with magic at a creature you can see within range. If the target can hear you, it must make a Wisdom saving throw or take psychic damage and have disadvantage on its next attack roll.",
+        "damage": "1d4",
+        "damageType": "psychic",
+        "range": "60 feet",
+        "duration": "Instantaneous",
+        "castingTime": "1 action",
+        "school": "Enchantment"
+      },
+      "fire_bolt": {
+        "name": "Fire Bolt",
+        "description": "You hurl a mote of fire at a creature or object within range. Make a ranged spell attack against the target.",
+        "damage": "1d10",
+        "damageType": "fire",
+        "range": "120 feet",
+        "duration": "Instantaneous",
+        "castingTime": "1 action",
+        "school": "Evocation"
+      }
+    },
+    "level1": {
+      "cure_wounds": {
+        "name": "Cure Wounds",
+        "description": "A creature you touch regains a number of hit points equal to 1d8 + your spellcasting ability modifier.",
+        "damage": "1d8 + modifier",
+        "damageType": "healing",
+        "range": "Touch",
+        "duration": "Instantaneous",
+        "castingTime": "1 action",
+        "school": "Evocation"
+      },
+      "magic_missile": {
+        "name": "Magic Missile",
+        "description": "You create three glowing darts of magical force. Each dart hits a creature of your choice that you can see within range.",
+        "damage": "1d4 + 1 per dart",
+        "damageType": "force",
+        "range": "120 feet",
+        "duration": "Instantaneous",
+        "castingTime": "1 action",
+        "school": "Evocation"
+      },
+      "shield": {
+        "name": "Shield",
+        "description": "An invisible barrier of magical force appears and protects you. Until the start of your next turn, you have a +5 bonus to AC, including against the triggering attack.",
+        "damage": null,
+        "damageType": null,
+        "range": "Self",
+        "duration": "1 round",
+        "castingTime": "1 reaction",
+        "school": "Abjuration"
+      }
+    }
+  }
+}
+

@@ -257,6 +257,76 @@ export const backgroundData = {
     name: 'Curandero',
     skills: ['Medicina', 'Perspicacia'],
     equipment: ['Kit de medicina', 'Hierbas medicinales', 'Dinero (20 po)', 'Libro de remedios']
+  },
+  explorador: {
+    name: 'Explorador',
+    skills: ['Naturaleza', 'Supervivencia'],
+    equipment: ['Brújula', 'Mapas', 'Ropa de viajero', 'Raciones de viaje (10 días)', 'Dinero (15 po)']
+  },
+  comerciante: {
+    name: 'Comerciante',
+    skills: ['Persuasión', 'Investigación'],
+    equipment: ['Balanza de comerciante', 'Libro de cuentas', 'Ropa fina', 'Dinero (25 po)', 'Mercancías diversas']
+  },
+  diplomatico: {
+    name: 'Diplomático',
+    skills: ['Persuasión', 'Historia'],
+    equipment: ['Documentos oficiales', 'Sello personal', 'Ropa elegante', 'Dinero (20 po)', 'Cartas de presentación']
+  },
+  investigador: {
+    name: 'Investigador',
+    skills: ['Investigación', 'Percepción'],
+    equipment: ['Lupa', 'Pergaminos', 'Tinta y pluma', 'Ropa de erudito', 'Dinero (15 po)', 'Kit de investigación']
+  },
+  cazador: {
+    name: 'Cazador',
+    skills: ['Supervivencia', 'Percepción'],
+    equipment: ['Arco de caza', 'Flechas (20)', 'Trampas', 'Ropa de cazador', 'Dinero (10 po)', 'Trofeos de caza']
+  },
+  herrero: {
+    name: 'Herrero',
+    skills: ['Atletismo', 'Investigación'],
+    equipment: ['Herramientas de herrero', 'Martillo', 'Yunque portátil', 'Ropa de trabajo', 'Dinero (20 po)', 'Metal en bruto']
+  },
+  artista: {
+    name: 'Artista',
+    skills: ['Acrobacias', 'Persuasión'],
+    equipment: ['Instrumento musical', 'Disfraces', 'Ropa de actuación', 'Dinero (15 po)', 'Kit de maquillaje']
+  },
+  forastero: {
+    name: 'Forastero',
+    skills: ['Supervivencia', 'Percepción'],
+    equipment: ['Ropa de viajero', 'Mochila', 'Raciones de viaje (5 días)', 'Dinero (10 po)', 'Mapa de carreteras']
+  },
+  erudito: {
+    name: 'Erudito',
+    skills: ['Historia', 'C. Arcano'],
+    equipment: ['Libros de estudio', 'Tinta y pluma', 'Pergaminos', 'Ropa de erudito', 'Dinero (15 po)']
+  },
+  marinero: {
+    name: 'Marinero',
+    skills: ['Atletismo', 'Percepción'],
+    equipment: ['Brújula', 'Cuerda de seda (15m)', 'Ropa de marinero', 'Dinero (10 po)', 'Kit de navegación']
+  },
+  huerfano: {
+    name: 'Huérfano',
+    skills: ['Sigilo', 'Engaño'],
+    equipment: ['Herramientas de ladrón', 'Ropa común', 'Dinero (5 po)', 'Recuerdo de familia']
+  },
+  minero: {
+    name: 'Minero',
+    skills: ['Atletismo', 'Supervivencia'],
+    equipment: ['Pico de minero', 'Lámpara de aceite', 'Ropa de trabajo', 'Dinero (10 po)', 'Minerales en bruto']
+  },
+  pescador: {
+    name: 'Pescador',
+    skills: ['Supervivencia', 'Naturaleza'],
+    equipment: ['Red de pesca', 'Caña de pescar', 'Ropa de pescador', 'Dinero (8 po)', 'Cebo']
+  },
+  cocinero: {
+    name: 'Cocinero',
+    skills: ['Medicina', 'Persuasión'],
+    equipment: ['Utensilios de cocina', 'Especias', 'Ropa de cocinero', 'Dinero (12 po)', 'Libro de recetas']
   }
 };
 
@@ -340,7 +410,7 @@ export const savingThrowsByClass = {
 // 🔹 Opciones de skills por clase (PHB). 'choose' = cuántas elegir.
 export const classSkillOptions = {
   barbaro: { choose: 2, from: [
-    'Atletismo','Intimidación','Naturaleza','Percepción','Supervivencia','T. con Animales'
+    'Atletismo','Intimidación','Naturaleza','Percepción','Sigilo','Supervivencia','T. con Animales'
   ]},
   bardo: { choose: 3, from: ALL_SKILLS }, // bardo: 3 de cualquier skill
   clerigo: { choose: 2, from: [

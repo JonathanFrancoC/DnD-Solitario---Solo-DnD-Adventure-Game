@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from '../../../contexts/LanguageContext';
 import classesData from '../../../data/classes.json';
 import { getAllSubclassActions, getAllSubclassFeaturesAt } from '../../../utils/classSchemaUtils.js';
 import { getAllFeats, calculateActiveFeatBenefits } from '../../../utils/featUtils.js';
@@ -19,6 +20,7 @@ import {
 } from '../../../data/classMechanics.js';
 
 export default function CorePage({ data, onChange, locked = false, onSaveCharacter, onDeleteCharacter }) {
+  const { t } = useTranslation();
   const ro = { background:'#f0f0f0', cursor:'not-allowed' }; // campos de solo lectura
   
   // Calcular beneficios de dotes una sola vez para optimizar
@@ -676,7 +678,7 @@ export default function CorePage({ data, onChange, locked = false, onSaveCharact
          {/* NOMBRE DEL PERSONAJE*/}
          <div>
            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '4px' }}>
-             Nombre del Personaje
+             {t('character.name')}
            </label>
                       <input 
               value={data.name || ''}
@@ -691,7 +693,7 @@ export default function CorePage({ data, onChange, locked = false, onSaveCharact
            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
              <div>
                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '2px', fontSize: '12px' }}>
-                 Clase
+                 {t('character.class')}
                </label>
                               <input 
                   value={data.class || ''}
@@ -701,7 +703,7 @@ export default function CorePage({ data, onChange, locked = false, onSaveCharact
               </div>
               <div>
                 <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '2px', fontSize: '12px' }}>
-                  Nivel
+                  {t('character.level')}
                 </label>
                 <input 
                   value={data.level || 1}
@@ -713,7 +715,7 @@ export default function CorePage({ data, onChange, locked = false, onSaveCharact
               </div>
               <div>
                 <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '2px', fontSize: '12px' }}>
-                  Trasfondo
+                  {t('character.background')}
                 </label>
                 <input 
                   value={data.background || ''}
@@ -727,7 +729,7 @@ export default function CorePage({ data, onChange, locked = false, onSaveCharact
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
               <div>
                 <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '2px', fontSize: '12px' }}>
-                  Jugador
+                  {t('character.player', 'Jugador')}
                 </label>
                 <input 
                   value={data.playerName || ''}
@@ -737,7 +739,7 @@ export default function CorePage({ data, onChange, locked = false, onSaveCharact
               </div>
               <div>
                 <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '2px', fontSize: '12px' }}>
-                  Raza
+                  {t('character.race')}
                 </label>
                 <input 
                   value={data.race || ''}
@@ -747,7 +749,7 @@ export default function CorePage({ data, onChange, locked = false, onSaveCharact
               </div>
               <div>
                 <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '2px', fontSize: '12px' }}>
-                  Alineamiento
+                  {t('character.alignment')}
                 </label>
                 <input 
                   value={data.alignment || ''}
@@ -777,16 +779,12 @@ export default function CorePage({ data, onChange, locked = false, onSaveCharact
                 borderRadius: '8px',
                 backgroundColor: '#f9f9f9'
               }}>
-                <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '14px' }}>Características</h3>
+                <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '14px' }}>{t('character.attributes', 'Características')}</h3>
                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'].map(ability => (
                   <div key={ability} style={{ textAlign: 'center' }}>
                     <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px', fontSize: '12px' }}>
-                      {ability === 'strength' ? 'FUERZA' : 
-                       ability === 'dexterity' ? 'DESTREZA' :
-                       ability === 'constitution' ? 'CONSTITUCIÓN' :
-                       ability === 'intelligence' ? 'INTELIGENCIA' :
-                       ability === 'wisdom' ? 'SABIDURÍA' : 'CARISMA'}
+                      {t(`attributes.${ability}`).toUpperCase()}
                     </label>
                       <div style={{ 
                        width: '60px', 
@@ -872,13 +870,13 @@ export default function CorePage({ data, onChange, locked = false, onSaveCharact
                          style={{ transform: 'scale(1.2)' }}
                        />
                        <label style={{ fontWeight: 'bold', fontSize: '12px' }}>
-                         Inspiración
+                         {t('character.inspiration', 'Inspiración')}
                        </label>
                      </div>
                    </div>
                    <div>
                      <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px', fontSize: '12px' }}>
-                       Bonificador de Competencia
+                       {t('character.proficiencyBonus', 'Bonificador de Competencia')}
                      </label>
                                          <div style={{ 
                         fontSize: '20px', 
@@ -902,7 +900,7 @@ export default function CorePage({ data, onChange, locked = false, onSaveCharact
                 borderRadius: '8px',
                 backgroundColor: '#f9f9f9'
               }}>
-               <h3 style={{ marginTop: 0, marginBottom: '8px', fontSize: '12px' }}>Tiradas de Salvación</h3>
+               <h3 style={{ marginTop: 0, marginBottom: '8px', fontSize: '12px' }}>{t('character.savingThrows')}</h3>
                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '4px' }}>
                  {['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'].map(ability => (
                    <div key={ability} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -950,11 +948,7 @@ export default function CorePage({ data, onChange, locked = false, onSaveCharact
                          </div>
                       </div>
                      <span style={{ fontWeight: 'bold', fontSize: '9px', minWidth: '40px' }}>
-                       {ability === 'strength' ? 'Fuerza' : 
-                        ability === 'dexterity' ? 'Destreza' :
-                        ability === 'constitution' ? 'Constitución' :
-                        ability === 'intelligence' ? 'Inteligencia' :
-                        ability === 'wisdom' ? 'Sabiduría' : 'Carisma'}
+                       {t(`attributes.${ability}`)}
                      </span>
                    </div>
                  ))}
@@ -968,27 +962,27 @@ export default function CorePage({ data, onChange, locked = false, onSaveCharact
                  borderRadius: '8px',
                  backgroundColor: '#f9f9f9'
                }}>
-                <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '14px' }}>Habilidades</h3>
+                <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '14px' }}>{t('character.skills')}</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '6px' }}>
                   {[
-                    { key: 'acrobatics', name: 'Acrobacias', ability: 'dexterity', abbr: 'Des' },
-                    { key: 'athletics', name: 'Atletismo', ability: 'strength', abbr: 'Fue' },
-                    { key: 'arcana', name: 'Arcano', ability: 'intelligence', abbr: 'Int' },
-                    { key: 'deception', name: 'Engaño', ability: 'charisma', abbr: 'Car' },
-                    { key: 'history', name: 'Historia', ability: 'intelligence', abbr: 'Int' },
-                    { key: 'insight', name: 'Perspicacia', ability: 'wisdom', abbr: 'Sab' },
-                    { key: 'intimidation', name: 'Intimidación', ability: 'charisma', abbr: 'Car' },
-                    { key: 'investigation', name: 'Investigación', ability: 'intelligence', abbr: 'Int' },
-                    { key: 'medicine', name: 'Medicina', ability: 'wisdom', abbr: 'Sab' },
-                    { key: 'nature', name: 'Naturaleza', ability: 'intelligence', abbr: 'Int' },
-                    { key: 'perception', name: 'Percepción', ability: 'wisdom', abbr: 'Sab' },
-                    { key: 'performance', name: 'Interpretación', ability: 'charisma', abbr: 'Car' },
-                    { key: 'persuasion', name: 'Persuasión', ability: 'charisma', abbr: 'Car' },
-                    { key: 'religion', name: 'Religión', ability: 'intelligence', abbr: 'Int' },
-                    { key: 'sleightOfHand', name: 'Juego de Manos', ability: 'dexterity', abbr: 'Des' },
-                    { key: 'stealth', name: 'Sigilo', ability: 'dexterity', abbr: 'Des' },
-                    { key: 'survival', name: 'Supervivencia', ability: 'wisdom', abbr: 'Sab' },
-                    { key: 'animalHandling', name: 'Trato con Animales', ability: 'wisdom', abbr: 'Sab' }
+                    { key: 'acrobatics', ability: 'dexterity' },
+                    { key: 'athletics', ability: 'strength' },
+                    { key: 'arcana', ability: 'intelligence' },
+                    { key: 'deception', ability: 'charisma' },
+                    { key: 'history', ability: 'intelligence' },
+                    { key: 'insight', ability: 'wisdom' },
+                    { key: 'intimidation', ability: 'charisma' },
+                    { key: 'investigation', ability: 'intelligence' },
+                    { key: 'medicine', ability: 'wisdom' },
+                    { key: 'nature', ability: 'intelligence' },
+                    { key: 'perception', ability: 'wisdom' },
+                    { key: 'performance', ability: 'charisma' },
+                    { key: 'persuasion', ability: 'charisma' },
+                    { key: 'religion', ability: 'intelligence' },
+                    { key: 'sleightOfHand', ability: 'dexterity' },
+                    { key: 'stealth', ability: 'dexterity' },
+                    { key: 'survival', ability: 'wisdom' },
+                    { key: 'animalHandling', ability: 'wisdom' }
                   ].map(skill => (
                     <div key={skill.key} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <div 
@@ -1035,7 +1029,7 @@ export default function CorePage({ data, onChange, locked = false, onSaveCharact
                           </div>
                        </div>
                       <span style={{ fontWeight: 'bold', fontSize: '11px', minWidth: '60px' }}>
-                        {skill.name} ({skill.abbr})
+                        {t(`skills.${skill.key}`)} ({t(`attributes.${skill.ability}`).substring(0, 3)})
                       </span>
                     </div>
                   ))}
@@ -1051,7 +1045,7 @@ export default function CorePage({ data, onChange, locked = false, onSaveCharact
                textAlign: 'center'
              }}>
               <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px', fontSize: '12px' }}>
-                Sabiduría (Percepción) Pasiva
+                {t('character.passiveWisdom')}
               </label>
                             <div style={{ 
                  fontSize: '24px', 
@@ -1072,12 +1066,12 @@ export default function CorePage({ data, onChange, locked = false, onSaveCharact
                borderRadius: '8px',
                backgroundColor: '#f9f9f9'
              }}>
-              <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '14px' }}>Otras Competencias e Idiomas</h3>
+              <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '14px' }}>{t('character.otherProficiencies')}</h3>
                              <textarea
                   value={data.otherProficiencies || ''}
                   onChange={e => onChange('otherProficiencies', e.target.value)}
                   rows="8"
-                  placeholder="Competencias, idiomas, herramientas..."
+                  placeholder={t('character.otherProficiencies') + '...'}
                   style={{ 
                     width: '100%', 
                     padding: '8px', 
@@ -1102,10 +1096,10 @@ export default function CorePage({ data, onChange, locked = false, onSaveCharact
                borderRadius: '8px',
                backgroundColor: '#f9f9f9'
              }}>
-              <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '14px' }}>Combate</h3>
+              <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '14px' }}>{t('character.combat')}</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
                 <div>
-                  <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '2px', fontSize: '11px' }}>Clase de Armadura</label>
+                  <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '2px', fontSize: '11px' }}>{t('character.armorClass')}</label>
                   <div style={{ position: 'relative' }}>
                     <input 
                       value={data.armorClass || 10}
@@ -1138,7 +1132,7 @@ export default function CorePage({ data, onChange, locked = false, onSaveCharact
                   </div>
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '2px', fontSize: '11px' }}>Iniciativa</label>
+                  <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '2px', fontSize: '11px' }}>{t('character.initiative')}</label>
                   <div style={{ position: 'relative' }}>
                     <input 
                       value={data.initiative || 0}
@@ -1171,7 +1165,7 @@ export default function CorePage({ data, onChange, locked = false, onSaveCharact
                   </div>
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '2px', fontSize: '11px' }}>Velocidad</label>
+                  <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '2px', fontSize: '11px' }}>{t('character.speed')}</label>
                   <div style={{ position: 'relative' }}>
                     <input 
                       value={data.speed || 30}
@@ -1213,7 +1207,7 @@ export default function CorePage({ data, onChange, locked = false, onSaveCharact
                 borderRadius: '8px',
                 backgroundColor: '#f9f9f9'
               }}>
-                <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '14px' }}>Puntos de Golpe</h3>
+                <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '14px' }}>{t('character.hitPoints')}</h3>
                 <div style={{ 
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr',
@@ -1237,7 +1231,7 @@ export default function CorePage({ data, onChange, locked = false, onSaveCharact
                       backgroundColor: '#f9f9f9'
                     }}>
                       <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '2px', fontSize: '10px' }}>
-                        Puntos de Golpe Máximos
+                        {t('character.maxHitPoints')}
                       </label>
                       <div style={{ position: 'relative' }}>
                         <input 
@@ -1291,7 +1285,7 @@ export default function CorePage({ data, onChange, locked = false, onSaveCharact
                       flexDirection: 'column'
                     }}>
                       <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '2px', fontSize: '10px' }}>
-                        Puntos de Golpe Actuales
+                        {t('character.currentHitPoints')}
                       </label>
                       <input 
                         id="currentHPField"
@@ -1330,7 +1324,7 @@ export default function CorePage({ data, onChange, locked = false, onSaveCharact
                       backgroundColor: '#f9f9f9'
                     }}>
                       <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '2px', fontSize: '10px' }}>
-                        Puntos de Golpe Temporales
+                        {t('character.tempHitPoints')}
                       </label>
                       <input 
                         value={data.tempHP || 0}
@@ -1360,7 +1354,7 @@ export default function CorePage({ data, onChange, locked = false, onSaveCharact
                       flexDirection: 'column'
                     }}>
                       <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '2px', fontSize: '10px' }}>
-                        Dado de Golpe
+                        {t('character.hitDice')}
                       </label>
                       <input 
                         value={data.hitDice || '1d10'}
@@ -1641,7 +1635,7 @@ export default function CorePage({ data, onChange, locked = false, onSaveCharact
                borderRadius: '8px',
                backgroundColor: '#f9f9f9'
              }}>
-              <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '14px' }}>Rasgos de Personalidad</h3>
+              <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '14px' }}>{t('character.personality')}</h3>
                              <textarea 
                   value={data.personalityTrait || ''}
                   onChange={e => onChange('personalityTrait', e.target.value)}
@@ -1658,7 +1652,7 @@ export default function CorePage({ data, onChange, locked = false, onSaveCharact
                 borderRadius: '8px',
                 backgroundColor: '#f9f9f9'
               }}>
-                <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '14px' }}>Ideales</h3>
+                <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '14px' }}>{t('character.ideals')}</h3>
                 <textarea 
                   value={data.ideal || ''}
                   onChange={e => onChange('ideal', e.target.value)}
@@ -1675,7 +1669,7 @@ export default function CorePage({ data, onChange, locked = false, onSaveCharact
                 borderRadius: '8px',
                 backgroundColor: '#f9f9f9'
               }}>
-                <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '14px' }}>Vínculos</h3>
+                <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '14px' }}>{t('character.bonds')}</h3>
                 <textarea 
                   value={data.bond || ''}
                   onChange={e => onChange('bond', e.target.value)}
@@ -1692,7 +1686,7 @@ export default function CorePage({ data, onChange, locked = false, onSaveCharact
                 borderRadius: '8px',
                 backgroundColor: '#f9f9f9'
               }}>
-                <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '14px' }}>Defectos</h3>
+                <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '14px' }}>{t('character.flaws')}</h3>
                 <textarea 
                   value={data.flaw || ''}
                   onChange={e => onChange('flaw', e.target.value)}
@@ -1709,7 +1703,7 @@ export default function CorePage({ data, onChange, locked = false, onSaveCharact
                 borderRadius: '8px',
                 backgroundColor: '#f9f9f9'
               }}>
-              <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '14px' }}>Rasgos y Atributos</h3>
+              <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '14px' }}>{t('character.traits')}</h3>
                              <textarea
                   value={generateFeaturesAndTraits(data)}
                   onChange={e => onChange('featuresAndTraits', e.target.value)}

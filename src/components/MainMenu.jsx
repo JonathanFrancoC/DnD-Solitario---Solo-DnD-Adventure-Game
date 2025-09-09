@@ -1,7 +1,14 @@
 import React from 'react'
 import { Play, BookOpen, Settings, Sword, Shield, Map } from 'lucide-react'
+import { useTranslation } from '../contexts/LanguageContext'
 
 const MainMenu = ({ onNewGame, onContinueGame, onOpenSettings, onViewCharacterStats, hasSavedGame }) => {
+  const { t, language } = useTranslation();
+  
+  // Debug log para verificar traducciones
+  console.log('🔍 MainMenu - Idioma actual:', language);
+  console.log('🔍 MainMenu - Título traducido:', t('app.title'));
+  
   return (
     <div style={{ 
       height: '100vh', 
@@ -29,7 +36,7 @@ const MainMenu = ({ onNewGame, onContinueGame, onOpenSettings, onViewCharacterSt
             marginBottom: '16px',
             textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
           }}>
-            D&D Solitario
+            {t('app.title')}
           </h1>
           <p style={{ 
             fontSize: '20px', 
@@ -37,8 +44,7 @@ const MainMenu = ({ onNewGame, onContinueGame, onOpenSettings, onViewCharacterSt
             maxWidth: '400px', 
             margin: '0 auto'
           }}>
-            Embárcate en una aventura épica donde la Inteligencia Artificial 
-            actúa como tu Dungeon Master personal
+            {t('app.subtitle', 'Embárcate en una aventura épica donde la Inteligencia Artificial actúa como tu Dungeon Master personal')}
           </p>
         </div>
 
@@ -74,7 +80,7 @@ const MainMenu = ({ onNewGame, onContinueGame, onOpenSettings, onViewCharacterSt
             }}
           >
             <Play size={24} />
-            <span>Nueva Partida</span>
+            <span>{t('game.newGame')}</span>
           </button>
 
           {/* Continuar Partida */}
@@ -92,7 +98,7 @@ const MainMenu = ({ onNewGame, onContinueGame, onOpenSettings, onViewCharacterSt
             }`}></div>
             <BookOpen size={24} className="relative z-10" />
             <span className="relative z-10 text-lg">
-              {hasSavedGame ? 'Continuar Partida' : 'No hay partida guardada'}
+              {hasSavedGame ? t('game.continueGame') : t('game.noSavedGame', 'No hay partida guardada')}
             </span>
           </button>
 
@@ -111,7 +117,7 @@ const MainMenu = ({ onNewGame, onContinueGame, onOpenSettings, onViewCharacterSt
             }`}></div>
             <Sword size={24} className="relative z-10" />
             <span className="relative z-10 text-lg">
-              {hasSavedGame ? 'Ver Estadísticas de Personajes' : 'No hay partida guardada'}
+              {hasSavedGame ? t('game.viewCharacterStats', 'Ver Estadísticas de Personajes') : t('game.noSavedGame', 'No hay partida guardada')}
             </span>
           </button>
 
@@ -122,7 +128,7 @@ const MainMenu = ({ onNewGame, onContinueGame, onOpenSettings, onViewCharacterSt
           >
             <div className="absolute inset-0 bg-gradient-to-r from-dnd-gold/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             <Settings size={24} className="relative z-10" />
-            <span className="relative z-10 text-lg">Opciones</span>
+            <span className="relative z-10 text-lg">{t('game.options')}</span>
           </button>
         </div>
 
@@ -131,22 +137,22 @@ const MainMenu = ({ onNewGame, onContinueGame, onOpenSettings, onViewCharacterSt
           <div className="flex justify-center gap-8 text-dnd-light/60">
             <div className="flex items-center gap-2">
               <Sword size={16} />
-              <span className="text-sm">Combate Épico</span>
+              <span className="text-sm">{t('game.epicCombat', 'Combate Épico')}</span>
             </div>
             <div className="flex items-center gap-2">
               <Shield size={16} />
-              <span className="text-sm">Aventuras Únicas</span>
+              <span className="text-sm">{t('game.uniqueAdventures', 'Aventuras Únicas')}</span>
             </div>
             <div className="flex items-center gap-2">
               <Map size={16} />
-              <span className="text-sm">Mundos Dinámicos</span>
+              <span className="text-sm">{t('game.dynamicWorlds', 'Mundos Dinámicos')}</span>
             </div>
           </div>
         </div>
 
         {/* Versión */}
         <div className="mt-8 text-dnd-light/40 text-sm">
-          Versión 1.0.0 - Desarrollado con React, Electron y OpenAI
+          {t('app.version')} - {t('app.developedWith', 'Desarrollado con React, Electron y OpenAI')}
         </div>
       </div>
     </div>

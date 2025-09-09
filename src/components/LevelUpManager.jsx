@@ -138,7 +138,7 @@ export default function LevelUpManager({
             return spellData ? { key: k, ...spellData } : null;
           })
           .filter(Boolean) // Filtrar valores null
-          .sort((a, b) => a.name.localeCompare(b.name));
+          .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
      }
      
      // Filtrar conjuros por clase y nivel usando las reglas correctas de D&D 5e
@@ -158,7 +158,7 @@ export default function LevelUpManager({
           return spellData ? { key: k, ...spellData } : null;
         })
         .filter(Boolean) // Filtrar valores null
-        .sort((a, b) => a.name.localeCompare(b.name));
+        .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
    };
 
   // Obtener el dado de vida correcto según la clase

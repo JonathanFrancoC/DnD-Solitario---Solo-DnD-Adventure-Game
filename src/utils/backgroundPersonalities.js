@@ -1,6 +1,91 @@
+// Traducciones de trasfondos / Background translations
+export const backgroundTranslations = {
+  es: {
+    "acolito": "Acolito",
+    "charlatan": "Charlatán", 
+    "criminal": "Criminal",
+    "artista": "Artista",
+    "heroe": "Héroe del Pueblo",
+    "artesano": "Artesano de Gremio",
+    "ermitaño": "Ermitaño",
+    "noble": "Noble",
+    "forastero": "Forastero",
+    "erudito": "Erudito",
+    "marinero": "Marinero",
+    "soldado": "Soldado",
+    "huerfano": "Huérfano",
+    "asesino": "Asesino",
+    "mercenario": "Mercenario",
+    "cultista": "Cultista",
+    "guardia": "Guardia",
+    "curandero": "Curandero",
+    "explorador": "Explorador",
+    "comerciante": "Comerciante",
+    "diplomatico": "Diplomático",
+    "investigador": "Investigador",
+    "cazador": "Cazador",
+    "minero": "Minero",
+    "pescador": "Pescador",
+    "herrero": "Herrero",
+    "cocinero": "Cocinero",
+    "bardo": "Bardo",
+    "monje": "Monje",
+    "mago": "Mago",
+    "clerigo": "Clérigo",
+    "druida": "Druida",
+    "guerrero": "Guerrero",
+    "picaro": "Pícaro",
+    "paladin": "Paladín",
+    "ranger": "Explorador",
+    "hechicero": "Hechicero",
+    "brujo": "Brujo"
+  },
+  en: {
+    "acolito": "Acolyte",
+    "charlatan": "Charlatan",
+    "criminal": "Criminal", 
+    "artista": "Entertainer",
+    "heroe": "Folk Hero",
+    "artesano": "Guild Artisan",
+    "ermitaño": "Hermit",
+    "noble": "Noble",
+    "forastero": "Outlander",
+    "erudito": "Sage",
+    "marinero": "Sailor",
+    "soldado": "Soldier",
+    "huerfano": "Urchin",
+    "asesino": "Assassin",
+    "mercenario": "Mercenary",
+    "cultista": "Cultist",
+    "guardia": "Guard",
+    "curandero": "Healer",
+    "explorador": "Explorer",
+    "comerciante": "Merchant",
+    "diplomatico": "Diplomat",
+    "investigador": "Investigator",
+    "cazador": "Hunter",
+    "minero": "Miner",
+    "pescador": "Fisher",
+    "herrero": "Blacksmith",
+    "cocinero": "Cook",
+    "bardo": "Bard",
+    "monje": "Monk",
+    "mago": "Wizard",
+    "clerigo": "Cleric",
+    "druida": "Druid",
+    "guerrero": "Fighter",
+    "picaro": "Rogue",
+    "paladin": "Paladin",
+    "ranger": "Ranger",
+    "hechicero": "Sorcerer",
+    "brujo": "Warlock"
+  }
+};
+
 export const backgroundPersonalities = {
   "acolito": {
-    personalityTraits: [
+    personalityTraits: {
+      es: [
       "Hablo con solemnidad y midiendo cada palabra.",
       "Soy paciente incluso cuando otros pierden la calma.",
       "Procuro ver la chispa de bondad en cualquiera.",
@@ -10,43 +95,96 @@ export const backgroundPersonalities = {
       "Tolero otras creencias, pero defiendo la mía con firmeza.",
       "Me esfuerzo por ser un ejemplo de mi fe."
     ],
-    ideals: [
-      "Tradición. Las costumbres sagradas nos sostienen.",
-      "Caridad. Ayudar a los necesitados es una obligación.",
-      "Cambio. El mundo mejora con pequeños actos constantes.",
-      "Poder. Aspiro a guiar a mi congregación algún día.",
-      "Fe. Confío en la guía divina por encima de todo.",
-      "Aspiración. Debo ser digno del favor de mi deidad."
-    ],
-    bonds: [
-      "Mi templo es mi hogar y mi deber.",
-      "Protejo a mis compañeros de orden a cualquier costo.",
-      "Debo la vida a un milagro; vivo para retribuirlo.",
-      "Guardo un texto sagrado que no debe perderse.",
-      "Prometí llevar consuelo a quien sufre.",
-      "Un anciano sacerdote me formó; honro su legado."
-    ],
-    flaws: [
-      "Me cuesta aceptar otras doctrinas.",
-      "Confío demasiado en los de mi fe.",
-      "Soy inflexible cuando creo tener razón moral.",
-      "Desconfío de los extraños por instinto.",
-      "Me aferro a planes “por voluntad divina” aunque sean imprudentes.",
-      "Me culpo en exceso por mis errores."
-    ]
+      en: [
+        "I speak with solemnity and measure every word.",
+        "I am patient even when others lose their temper.",
+        "I try to see the spark of goodness in anyone.",
+        "I deeply respect religious hierarchy.",
+        "I look for signs and omens in everyday life.",
+        "I always have a parable ready to illustrate something.",
+        "I tolerate other beliefs, but I defend mine firmly.",
+        "I strive to be an example of my faith."
+      ]
+    },
+    ideals: {
+      es: [
+        "Tradición. Las costumbres sagradas nos sostienen.",
+        "Caridad. Ayudar a los necesitados es una obligación.",
+        "Cambio. El mundo mejora con pequeños actos constantes.",
+        "Poder. Aspiro a guiar a mi congregación algún día.",
+        "Fe. Confío en la guía divina por encima de todo.",
+        "Aspiración. Debo ser digno del favor de mi deidad."
+      ],
+      en: [
+        "Tradition. Sacred customs sustain us.",
+        "Charity. Helping the needy is an obligation.",
+        "Change. The world improves with small constant acts.",
+        "Power. I aspire to guide my congregation someday.",
+        "Faith. I trust in divine guidance above all.",
+        "Aspiration. I must be worthy of my deity's favor."
+      ]
+    },
+    bonds: {
+      es: [
+        "Mi templo es mi hogar y mi deber.",
+        "Protejo a mis compañeros de orden a cualquier costo.",
+        "Debo la vida a un milagro; vivo para retribuirlo.",
+        "Guardo un texto sagrado que no debe perderse.",
+        "Prometí llevar consuelo a quien sufre.",
+        "Un anciano sacerdote me formó; honro su legado."
+      ],
+      en: [
+        "My temple is my home and my duty.",
+        "I protect my order companions at any cost.",
+        "I owe my life to a miracle; I live to repay it.",
+        "I keep a sacred text that must not be lost.",
+        "I promised to bring comfort to those who suffer.",
+        "An elderly priest trained me; I honor his legacy."
+      ]
+    },
+    flaws: {
+      es: [
+        "Me cuesta aceptar otras doctrinas.",
+        "Confío demasiado en los de mi fe.",
+        "Soy inflexible cuando creo tener razón moral.",
+        "Desconfío de los extraños por instinto.",
+        "Me aferro a planes \"por voluntad divina\" aunque sean imprudentes.",
+        "Me culpo en exceso por mis errores."
+      ],
+      en: [
+        "I have trouble accepting other doctrines.",
+        "I trust too much in those of my faith.",
+        "I am inflexible when I believe I have moral right.",
+        "I distrust strangers by instinct.",
+        "I cling to plans \"by divine will\" even if they are imprudent.",
+        "I blame myself excessively for my mistakes."
+      ]
+    }
   },
 
   "charlatan": {
-    personalityTraits: [
-      "Tengo un alias para cada ocasión.",
-      "Improviso historias convincentes con facilidad.",
-      "Encuentro placer en engaños ingeniosos.",
-      "Me visto y actúo como exija el papel.",
-      "Siempre tengo una coartada lista.",
-      "Puedo halagar a cualquiera para desarmarlo.",
-      "Soy rápido con los dedos y con la lengua.",
-      "Río primero y admito después… si me conviene."
-    ],
+    personalityTraits: {
+      es: [
+        "Tengo un alias para cada ocasión.",
+        "Improviso historias convincentes con facilidad.",
+        "Encuentro placer en engaños ingeniosos.",
+        "Me visto y actúo como exija el papel.",
+        "Siempre tengo una coartada lista.",
+        "Puedo halagar a cualquiera para desarmarlo.",
+        "Soy rápido con los dedos y con la lengua.",
+        "Río primero y admito después… si me conviene."
+      ],
+      en: [
+        "I have an alias for every occasion.",
+        "I improvise convincing stories easily.",
+        "I find pleasure in ingenious deceptions.",
+        "I dress and act as the role demands.",
+        "I always have an alibi ready.",
+        "I can flatter anyone to disarm them.",
+        "I am quick with my fingers and tongue.",
+        "I laugh first and admit later... if it suits me."
+      ]
+    },
     ideals: [
       "Independencia. Nadie me manda.",
       "Justicia. Engaño a quienes se aprovechan de otros.",
@@ -664,5 +802,339 @@ export const backgroundPersonalities = {
       "Me aferro a planes \"por voluntad divina\" aunque sean imprudentes.",
       "Me culpo en exceso por mis errores."
     ]
+  },
+
+  // Nuevos trasfondos adicionales
+  "explorador": {
+    personalityTraits: [
+      "Me siento más libre bajo el cielo abierto.",
+      "Hablo poco y voy al grano.",
+      "Leo huellas y rastros como otros leen libros.",
+      "Me oriento por estrellas y viento.",
+      "Desconfío de la pompa urbana.",
+      "Comparto sin dudar lo que tengo.",
+      "Conozco plantas y sus usos.",
+      "Escucho antes a los animales que a la gente."
+    ],
+    ideals: [
+      "Libertad. Nadie posee la tierra.",
+      "Naturaleza. Vivimos con el mundo, no sobre él.",
+      "Supervivencia. Haré lo necesario para seguir.",
+      "Comunidad. Mi clan y mi manada primero.",
+      "Equilibrio. Todo toma y devuelve.",
+      "Destino. Los presagios marcan el camino."
+    ],
+    bonds: [
+      "Mi tribu me necesita.",
+      "Un valle sagrado debe permanecer intacto.",
+      "Un animal me salvó la vida y lo honro.",
+      "Llevo un tótem familiar conmigo.",
+      "Guío viajeros fuera de peligro.",
+      "Debo saldar una deuda con otro clan."
+    ],
+    flaws: [
+      "Desconfío de casi todos al principio.",
+      "Soy brusco y hiero sin querer.",
+      "Me enfado con los desperdicios.",
+      "Guardo rencor largo tiempo.",
+      "Me pierdo en supersticiones de mi pueblo.",
+      "Me cuesta pedir indicaciones… incluso perdido."
+    ]
+  },
+
+  "comerciante": {
+    personalityTraits: [
+      "Valoro el trabajo bien hecho por encima del aplauso.",
+      "Anoto cada pedido con meticulosidad.",
+      "Huelo los materiales para evaluar su calidad.",
+      "Regateo con una sonrisa… y no cedo fácil.",
+      "Guardo muestras de todo lo que elaboro.",
+      "Me gusta enseñar mi oficio a aprendices.",
+      "Soy puntilloso con los plazos.",
+      "Trato a clientes y proveedores con cortesía firme."
+    ],
+    ideals: [
+      "Tradición. El oficio honra a mis mayores.",
+      "Trabajo. La excelencia se forja día a día.",
+      "Comunidad. El gremio eleva la ciudad.",
+      "Innovación. Siempre hay una mejor manera.",
+      "Independencia. Mi taller, mis reglas.",
+      "Prosperidad. La riqueza bien ganada es virtud."
+    ],
+    bonds: [
+      "Mi gremio es mi sostén y mi familia.",
+      "Un cliente fiel me salvó de la ruina.",
+      "Herede un taller que debo mantener vivo.",
+      "Un aprendiz depende de mi guía.",
+      "Un encargo prestigioso puede consagrarme.",
+      "Protejo un diseño secreto del taller."
+    ],
+    flaws: [
+      "Soy terco con mis métodos.",
+      "Desprecio el trabajo descuidado… quizá demasiado.",
+      "Acumulo materiales \"por si acaso\".",
+      "Me obsesiono con encargos importantes.",
+      "Me ofendo si regatean de más.",
+      "Prometo plazos imposibles por ambición."
+    ]
+  },
+
+  "diplomatico": {
+    personalityTraits: [
+      "Mi porte refleja mi linaje.",
+      "Hablo con diplomacia incluso al discrepar.",
+      "Recuerdo nombres y cortesías al detalle.",
+      "Valoro el decoro en público.",
+      "Tengo una anécdota familiar para cada ocasión.",
+      "No tolero la grosería gratuita.",
+      "Delego, pero superviso todo.",
+      "Sé cuándo un banquete es política disfrazada."
+    ],
+    ideals: [
+      "Respeto. Toda persona merece trato digno.",
+      "Responsabilidad. La posición implica deberes.",
+      "Independencia. Probaré estar a la altura sin privilegios.",
+      "Poder. Influir para cambiar el mundo.",
+      "Familia. La casa es lo primero.",
+      "Obligación. Debo proteger al pueblo."
+    ],
+    bonds: [
+      "Defiendo el buen nombre de mi casa.",
+      "Guardo un legado que no debe perderse.",
+      "Protejo a un vasallo leal.",
+      "Mi escudero confía en mí ciegamente.",
+      "Un acuerdo político me ata a otra familia.",
+      "Una promesa sellada en la infancia me guía."
+    ],
+    flaws: [
+      "Me creo el centro del salón.",
+      "Me ofendo con facilidad ante faltas de etiqueta.",
+      "Subestimo a la gente común.",
+      "No olvido un desaire.",
+      "Puedo ser condescendiente sin querer.",
+      "Me cuesta admitir errores en público."
+    ]
+  },
+
+  "investigador": {
+    personalityTraits: [
+      "Cito fuentes incluso en la taberna.",
+      "Me pierdo horas entre libros.",
+      "Formulo preguntas hasta saciar la curiosidad.",
+      "Hablo con precisión pedante.",
+      "Guardo notas en todos mis bolsillos.",
+      "Valoro más una verdad que mil halagos.",
+      "Observo patrones donde otros no ven nada.",
+      "Disfruto enseñando lo aprendido."
+    ],
+    ideals: [
+      "Conocimiento. Saber abre todas las puertas.",
+      "Lógica. La razón por encima del ímpetu.",
+      "Libre Pensamiento. Nadie monopoliza la verdad.",
+      "Poder. El saber es influencia.",
+      "Compartir. El conocimiento crece al repartirse.",
+      "Autosuficiencia. Aprender para depender menos."
+    ],
+    bonds: [
+      "Un mentor marcó mi camino.",
+      "Busco un tomo perdido legendario.",
+      "Mi biblioteca es mi tesoro.",
+      "Debo concluir una investigación larga.",
+      "Un colega rival me inspira y provoca.",
+      "Prometí educar a mentes jóvenes."
+    ],
+    flaws: [
+      "Hablo en exceso cuando me apasiono.",
+      "Menosprecio el conocimiento práctico.",
+      "Me distraigo con facilidad por curiosidad.",
+      "Olvido asuntos mundanos por estudiar.",
+      "Me cuesta admitir lagunas en mi saber.",
+      "Arriesgo de más por una pista jugosa."
+    ]
+  },
+
+  "cazador": {
+    personalityTraits: [
+      "Me siento más libre bajo el cielo abierto.",
+      "Hablo poco y voy al grano.",
+      "Leo huellas y rastros como otros leen libros.",
+      "Me oriento por estrellas y viento.",
+      "Desconfío de la pompa urbana.",
+      "Comparto sin dudar lo que tengo.",
+      "Conozco plantas y sus usos.",
+      "Escucho antes a los animales que a la gente."
+    ],
+    ideals: [
+      "Libertad. Nadie posee la tierra.",
+      "Naturaleza. Vivimos con el mundo, no sobre él.",
+      "Supervivencia. Haré lo necesario para seguir.",
+      "Comunidad. Mi clan y mi manada primero.",
+      "Equilibrio. Todo toma y devuelve.",
+      "Destino. Los presagios marcan el camino."
+    ],
+    bonds: [
+      "Mi tribu me necesita.",
+      "Un valle sagrado debe permanecer intacto.",
+      "Un animal me salvó la vida y lo honro.",
+      "Llevo un tótem familiar conmigo.",
+      "Guío viajeros fuera de peligro.",
+      "Debo saldar una deuda con otro clan."
+    ],
+    flaws: [
+      "Desconfío de casi todos al principio.",
+      "Soy brusco y hiero sin querer.",
+      "Me enfado con los desperdicios.",
+      "Guardo rencor largo tiempo.",
+      "Me pierdo en supersticiones de mi pueblo.",
+      "Me cuesta pedir indicaciones… incluso perdido."
+    ]
+  },
+
+  "herrero": {
+    personalityTraits: [
+      "Valoro el trabajo bien hecho por encima del aplauso.",
+      "Anoto cada pedido con meticulosidad.",
+      "Huelo los materiales para evaluar su calidad.",
+      "Regateo con una sonrisa… y no cedo fácil.",
+      "Guardo muestras de todo lo que elaboro.",
+      "Me gusta enseñar mi oficio a aprendices.",
+      "Soy puntilloso con los plazos.",
+      "Trato a clientes y proveedores con cortesía firme."
+    ],
+    ideals: [
+      "Tradición. El oficio honra a mis mayores.",
+      "Trabajo. La excelencia se forja día a día.",
+      "Comunidad. El gremio eleva la ciudad.",
+      "Innovación. Siempre hay una mejor manera.",
+      "Independencia. Mi taller, mis reglas.",
+      "Prosperidad. La riqueza bien ganada es virtud."
+    ],
+    bonds: [
+      "Mi gremio es mi sostén y mi familia.",
+      "Un cliente fiel me salvó de la ruina.",
+      "Herede un taller que debo mantener vivo.",
+      "Un aprendiz depende de mi guía.",
+      "Un encargo prestigioso puede consagrarme.",
+      "Protejo un diseño secreto del taller."
+    ],
+    flaws: [
+      "Soy terco con mis métodos.",
+      "Desprecio el trabajo descuidado… quizá demasiado.",
+      "Acumulo materiales \"por si acaso\".",
+      "Me obsesiono con encargos importantes.",
+      "Me ofendo si regatean de más.",
+      "Prometo plazos imposibles por ambición."
+    ]
   }
+};
+
+// Función para obtener personalidades basadas en trasfondo / Function to get personalities based on background
+export const getBackgroundPersonality = (backgroundKey, language = 'es') => {
+  const background = backgroundPersonalities[backgroundKey];
+  if (!background) {
+    console.warn(`Trasfondo no encontrado: ${backgroundKey}`);
+    return null;
+  }
+
+  // Función helper para obtener array por idioma
+  const getByLanguage = (item) => {
+    if (typeof item === 'object' && item[language]) {
+      return item[language];
+    }
+    // Fallback para estructura antigua
+    return Array.isArray(item) ? item : [];
+  };
+
+  return {
+    personalityTraits: getByLanguage(background.personalityTraits),
+    ideals: getByLanguage(background.ideals),
+    bonds: getByLanguage(background.bonds),
+    flaws: getByLanguage(background.flaws)
+  };
+};
+
+// Función para obtener nombre traducido del trasfondo / Function to get translated background name
+export const getBackgroundName = (backgroundKey, language = 'es') => {
+  const translations = backgroundTranslations[language];
+  if (!translations || !translations[backgroundKey]) {
+    console.warn(`Traducción no encontrada para trasfondo: ${backgroundKey} en idioma: ${language}`);
+    return backgroundKey;
+  }
+  return translations[backgroundKey];
+};
+
+// Función para obtener lista de trasfondos disponibles / Function to get list of available backgrounds
+export const getAvailableBackgrounds = (language = 'es') => {
+  const translations = backgroundTranslations[language];
+  return Object.keys(backgroundPersonalities).map(key => ({
+    key,
+    name: translations[key] || key,
+    personality: backgroundPersonalities[key]
+  }));
+};
+
+// Función para generar personalidad aleatoria basada en trasfondo / Function to generate random personality based on background
+export const generateRandomPersonalityFromBackground = (backgroundKey, language = 'es') => {
+  const personality = getBackgroundPersonality(backgroundKey, language);
+  if (!personality) {
+    console.warn(`No se pudo obtener personalidad para trasfondo: ${backgroundKey}`);
+    return null;
+  }
+
+  const randomChoice = (array) => array[Math.floor(Math.random() * array.length)];
+
+  return {
+    personalityTrait: randomChoice(personality.personalityTraits),
+    ideal: randomChoice(personality.ideals),
+    bond: randomChoice(personality.bonds),
+    flaw: randomChoice(personality.flaws)
+  };
+};
+
+// Función helper para traducir un trasfondo completo / Helper function to translate a complete background
+export const translateBackgroundToEnglish = (backgroundKey) => {
+  const background = backgroundPersonalities[backgroundKey];
+  if (!background) return null;
+
+  // Traducciones básicas para los trasfondos más comunes
+  const translations = {
+    "charlatan": {
+      personalityTraits: [
+        "I have an alias for every occasion.",
+        "I improvise convincing stories easily.",
+        "I find pleasure in ingenious deceptions.",
+        "I dress and act as the role demands.",
+        "I always have an alibi ready.",
+        "I can flatter anyone to disarm them.",
+        "I am quick with my fingers and tongue.",
+        "I laugh first and admit later... if it suits me."
+      ],
+      ideals: [
+        "Independence. No one commands me.",
+        "Justice. I deceive those who take advantage of others.",
+        "Charity. Sometimes I steal to feed hungry mouths.",
+        "Creativity. A good scam is a work of art.",
+        "Loyalty. I never betray my accomplices.",
+        "Ambition. I aspire to a legendary heist."
+      ],
+      bonds: [
+        "An old con artist taught me the trade.",
+        "I keep a fake object that's worth more for the story than the gold.",
+        "I'm in debt to someone dangerous.",
+        "I protect an apprentice who sees me as a mentor.",
+        "An innocent victim reminds me of my limits.",
+        "I have a favorite 'mark' that I always return to."
+      ],
+      flaws: [
+        "I can't resist a brilliant opportunity... even if it's stupid.",
+        "I think I'm too smart to be caught.",
+        "Gambling is my downfall.",
+        "I change identity so often that I forget who I am.",
+        "I have trouble telling the truth even when it's convenient.",
+        "I promise more than I can deliver."
+      ]
+    }
+  };
+
+  return translations[backgroundKey] || null;
 };

@@ -6,6 +6,7 @@ import CharacterManager from './components/CharacterManager'
 import GameOptions from './components/GameOptions'
 import GameArea from './components/GameArea'
 import CharacterStatsViewer from './components/CharacterStatsViewer'
+import { LanguageProvider, useTranslation } from './contexts/LanguageContext'
 import { getCharacterTraits, getCharacterDescription } from './data/characterTraits'
 import { raceData, classData, backgroundData, savingThrowsByClass, classSkillOptions } from './data/gameData'
 import { classEquipment } from './data/classEquipment'
@@ -16,6 +17,7 @@ import gameSaveService from './utils/gameSaveService'
 
 function App() {
   console.log('COMPONENTE APP RENDERIZANDO - INICIO')
+  const { t } = useTranslation()
   const [showMenu, setShowMenu] = useState(true)
   const [hasSavedGame, setHasSavedGame] = useState(false)
   const [isCreatingCharacter, setIsCreatingCharacter] = useState(false)
@@ -535,9 +537,27 @@ function App() {
     }
   }
 
-  const handleContinueGame = () => {
-    console.log('Continuar partida')
-    alert('Función de continuar partida en desarrollo')
+  const handleContinueGame = async () => {
+    console.log('Continuar partida - Cargando partidas existentes')
+    
+    try {
+      // Cargar lista de campañas disponibles
+      const campaigns = await gameSaveService.listCampaigns()
+      console.log('Campañas encontradas:', campaigns); // Campaigns found
+      
+      if (campaigns.length === 0) {
+        alert('No hay partidas guardadas. Crea una nueva partida para empezar.')
+        return
+      }
+      
+      // Mostrar selector de campañas
+      setShowCampaignManager(true)
+      setShowMenu(false)
+      
+    } catch (error) {
+      console.error('Error cargando partidas:', error)
+      alert(`Error al cargar partidas: ${error.message}`)
+    }
   }
 
     const handleStartGame = async (character) => {
@@ -566,10 +586,21 @@ function App() {
         maxUses: maxUses
       }
     }
+
+    // Generar ID único para la campaña basado en el nombre del personaje
+    const campaignId = `partida_${characterCopy.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now()}`
+    const campaignName = `Partida de ${characterCopy.name}`
+    
+    console.log('CREANDO NUEVA PARTIDA:'); // Creating new game
+    console.log('   ID de campaña:', campaignId); // Campaign ID
+    console.log('   Nombre:', campaignName); // Name
+    console.log('   Personaje:', characterCopy.name); // Character
   
     // Crear el estado inicial del juego
     const initialGameState = {
       character: characterCopy,
+      campaignId: campaignId,
+      sessionStart: new Date().toISOString(),
       world: {
         currentLocation: 'Taberna del Dragón Durmiente',
         discoveredLocations: ['Taberna del Dragón Durmiente'],
@@ -596,11 +627,34 @@ function App() {
       messages: [],
       lastUpdate: new Date().toISOString()
     }
-  
-    // Si hay una campaña activa, guardar el estado inicial con la copia del personaje
-    if (currentCampaignId) {
-      gameSaveService.setCurrentCampaign(currentCampaignId);
-      await gameSaveService.saveFullGameState(initialGameState, characterCopy);
+
+    try {
+      // Crear la campaña con la estructura de carpetas completa
+      console.log('📁 Creando estructura de carpetas de la partida...')
+      await gameSaveService.createCampaign(campaignId, campaignName)
+      
+      // Establecer la campaña actual
+      setCurrentCampaignId(campaignId)
+      gameSaveService.setCurrentCampaign(campaignId)
+      
+      // Guardar el estado inicial completo
+      console.log('Guardando estado inicial de la partida...'); // Saving initial game state
+      await gameSaveService.saveFullGameState(initialGameState, characterCopy, [], [])
+      
+      console.log('PARTIDA CREADA EXITOSAMENTE'); // Game created successfully
+      console.log('   Carpeta:', `saves/${campaignId}/`); // Folder
+      console.log('   Estructura creada:'); // Structure created
+      console.log('      - character.json (personaje principal)'); // main character
+      console.log('      - companions.json (compañeros - vacío)'); // companions - empty
+      console.log('      - villains.json (enemigos - vacío)'); // enemies - empty
+      console.log('      - world_state.json (estado del mundo)'); // world state
+      console.log('      - game_state.json (estado del juego)'); // game state
+      console.log('      - bitacora/ (logs de sesión)'); // session logs
+      
+    } catch (error) {
+      console.error('Error creando la partida:', error); // Error creating game
+      alert(`Error al crear la partida: ${error.message}`)
+      return
     }
   
     setGameState(initialGameState)
@@ -629,22 +683,54 @@ function App() {
   }
 
   const handleCampaignSelect = async (campaignId, campaignData) => {
-    console.log('Campaña seleccionada:', campaignId, campaignData);
+    console.log('CAMPAAÑA SELECCIONADA:', campaignId, campaignData); // Campaign selected
     
-    // Establecer la campaña actual
-    setCurrentCampaignId(campaignId);
-    gameSaveService.setCurrentCampaign(campaignId);
-    
-    // Si hay datos de campaña, cargarlos
-    if (campaignData && campaignData.game_state && campaignData.game_state.game_state) {
-      setGameState(campaignData.game_state.game_state);
+    try {
+      // Establecer la campaña actual
+      setCurrentCampaignId(campaignId);
+      gameSaveService.setCurrentCampaign(campaignId);
+      
+      console.log('Cargando datos de la campaña...'); // Loading campaign data
+      
+      // Cargar todos los datos de la campaña
+      const [character, companions, villains, worldState, gameState] = await Promise.all([
+        gameSaveService.loadMainCharacter(campaignId),
+        gameSaveService.loadCompanions(campaignId),
+        gameSaveService.loadVillains(campaignId),
+        gameSaveService.loadWorldState(campaignId),
+        gameSaveService.loadGameState(campaignId)
+      ]);
+      
+      console.log('DATOS CARGADOS:'); // Data loaded
+      console.log('   Personaje:', character?.name || 'No encontrado'); // Character
+      console.log('   Compañeros:', companions?.length || 0); // Companions
+      console.log('   Enemigos:', villains?.length || 0); // Enemies
+      console.log('   Estado del mundo:', Object.keys(worldState || {}).length > 0 ? 'Cargado' : 'Vacío'); // World state
+      console.log('   Estado del juego:', Object.keys(gameState || {}).length > 0 ? 'Cargado' : 'Vacío'); // Game state
+      
+      // Reconstruir el estado completo del juego
+      const fullGameState = {
+        character: character,
+        campaignId: campaignId,
+        world: worldState || {},
+        combat: gameState?.combat || { isActive: false, currentEnemies: [], turn: 0, initiative: [], effects: [] },
+        messages: gameState?.messages || [],
+        lastUpdate: new Date().toISOString()
+      };
+      
+      console.log('ESTADO COMPLETO RECONSTRUIDO:', fullGameState); // Complete state reconstructed
+      
+      // Establecer el estado del juego y comenzar a jugar
+      setGameState(fullGameState);
       setIsPlaying(true);
       setShowMenu(false);
       setShowCampaignManager(false);
-    } else {
-      // Si no hay datos, ir al menú de nuevo juego
-      setShowNewGameMenu(true);
-      setShowCampaignManager(false);
+      
+      console.log('🚀 PARTIDA CARGADA EXITOSAMENTE');
+      
+    } catch (error) {
+      console.error('❌ Error cargando campaña:', error);
+      alert(`Error al cargar la partida: ${error.message}`);
     }
   }
 
@@ -1050,7 +1136,7 @@ function App() {
             fontSize: '14px'
           }}
         >
-          ← Volver al Menú
+          {t('navigation.backToMenu')}
         </button>
       </div>
     );
@@ -1274,7 +1360,7 @@ function App() {
             fontSize: '14px'
           }}
         >
-          ← Volver al Menú
+          {t('navigation.backToMenu')}
         </button>
       </div>
     );
@@ -1341,7 +1427,7 @@ function App() {
                 fontWeight: 'bold'
               }}
             >
-              ← Volver al Menú Principal
+              {t('navigation.backToMenu')} Principal
             </button>
           </div>
         </div>
@@ -1801,7 +1887,7 @@ function App() {
                 e.target.style.background = 'linear-gradient(135deg, #6c757d 0%, #495057 100%)';
               }}
             >
-              ← Volver al Menú
+              {t('navigation.backToMenu')}
             </button>
           </div>
 
@@ -2087,4 +2173,13 @@ function App() {
   );
 }
 
-export default App;
+// Componente principal envuelto con el proveedor de idioma / Main component wrapped with language provider
+const AppWithLanguage = () => {
+  return (
+    <LanguageProvider>
+      <App />
+    </LanguageProvider>
+  );
+};
+
+export default AppWithLanguage;

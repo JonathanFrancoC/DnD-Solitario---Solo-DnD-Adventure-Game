@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { isAIConfigured } from '../utils/aiService';
+import { hardwareAnalyzer } from '../utils/hardwareAnalyzer';
+import { useLanguage, useTranslation } from '../contexts/LanguageContext';
 
 const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
+  const { t } = useTranslation();
+  const { language, changeLanguage } = useLanguage();
   const [selectedOption, setSelectedOption] = useState(null);
   const [aiProvider, setAiProvider] = useState('openai');
   const [apiKey, setApiKey] = useState('');
@@ -10,6 +14,16 @@ const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
   const [ollamaModel, setOllamaModel] = useState('llama3.2');
   const [aiConfigStatus, setAiConfigStatus] = useState('checking'); // 'checking', 'configured', 'not-configured'
   const [developerMode, setDeveloperMode] = useState(false)
+  const [testingConnection, setTestingConnection] = useState(false)
+  const [hardwareAnalysis, setHardwareAnalysis] = useState(null)
+  const [analyzingHardware, setAnalyzingHardware] = useState(false)
+  const [downloadingModel, setDownloadingModel] = useState(false)
+  const [downloadProgress, setDownloadProgress] = useState('')
+  const [modelDirectory, setModelDirectory] = useState('')
+  const [ollamaInstalled, setOllamaInstalled] = useState(false)
+  const [foundModels, setFoundModels] = useState([])
+  const [searchingModels, setSearchingModels] = useState(false)
+  const [showFoundModels, setShowFoundModels] = useState(false)
   const [options, setOptions] = useState({
     // Configuración de tono y contenido
     contentRating: currentOptions.contentRating || 'PG-13',
@@ -69,6 +83,13 @@ const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
     loadDeveloperMode();
   }, []);
 
+  // Verificar instalación de Ollama cuando se cambia a Ollama
+  useEffect(() => {
+    if (aiProvider === 'ollama') {
+      checkOllamaInstallation();
+    }
+  }, [aiProvider]);
+
   const checkAIConfigStatus = async () => {
     try {
       const configured = await isAIConfigured();
@@ -86,7 +107,24 @@ const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
         setAiProvider(config.provider || 'openai');
         setApiKey(config.apiKey || '');
         setOllamaUrl(config.ollamaUrl || 'http://localhost:11434');
-        setOllamaModel(config.ollamaModel || 'llama3.2');
+        
+        // Validar que el modelo de Ollama sea válido
+        const ollamaModel = config.ollamaModel || 'llama3.2';
+        const invalidModels = ['blobs', 'manifests', 'tmp', 'cache'];
+        
+        if (invalidModels.includes(ollamaModel.toLowerCase())) {
+          console.warn(`Modelo inválido detectado: ${ollamaModel}. Reseteando a llama3.2`);
+          setOllamaModel('llama3.2');
+          // Guardar la configuración corregida
+          await window.electronAPI.saveAIConfig({
+            provider: config.provider || 'openai',
+            apiKey: config.apiKey || '',
+            ollamaUrl: config.ollamaUrl || 'http://localhost:11434',
+            ollamaModel: 'llama3.2'
+          });
+        } else {
+          setOllamaModel(ollamaModel);
+        }
       } else {
         throw new Error('Esta aplicación solo funciona en Electron');
       }
@@ -106,12 +144,179 @@ const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
     }
   };
 
+  const testOllamaConnection = async () => {
+    if (aiProvider !== 'ollama') return;
+    
+    setTestingConnection(true);
+    try {
+      // Importar las funciones de diagnóstico
+      const { diagnoseOllamaConnection } = await import('../utils/aiService');
+      
+      const diagnostics = await diagnoseOllamaConnection(ollamaUrl, ollamaModel);
+      
+      if (diagnostics.connection && diagnostics.model && diagnostics.response) {
+        setAiConfigStatus('configured');
+        alert('✅ ¡Conexión exitosa con Ollama!\n\n' +
+              `• Servidor: ${ollamaUrl}\n` +
+              `• Modelo: ${ollamaModel}\n` +
+              '• Estado: Listo para usar');
+      } else {
+        setAiConfigStatus('not-configured');
+        const errorMessages = diagnostics.errors.join('\n• ');
+        alert('❌ Error de conexión con Ollama:\n\n' +
+              `• ${errorMessages}\n\n` +
+              'Verifica que Ollama esté ejecutándose y el modelo esté descargado.');
+      }
+    } catch (error) {
+      setAiConfigStatus('not-configured');
+      alert('❌ Error al probar la conexión:\n\n' + error.message);
+    } finally {
+      setTestingConnection(false);
+    }
+  };
+
+  const analyzeHardware = async () => {
+    setAnalyzingHardware(true);
+    try {
+      const analysis = await hardwareAnalyzer.analyzeSystem();
+      setHardwareAnalysis(analysis);
+      
+      // Aplicar recomendación automáticamente si es Ollama
+      if (aiProvider === 'ollama' && analysis.recommendations.primary) {
+        setOllamaModel(analysis.recommendations.primary);
+      }
+    } catch (error) {
+      console.error('Error analizando hardware:', error);
+      alert('❌ Error al analizar el hardware:\n\n' + error.message);
+    } finally {
+      setAnalyzingHardware(false);
+    }
+  };
+
+  const selectModelDirectory = async () => {
+    try {
+      const directory = await window.electronAPI.selectModelDirectory();
+      if (directory) {
+        setModelDirectory(directory);
+      }
+    } catch (error) {
+      console.error('Error seleccionando directorio:', error);
+      alert('❌ Error seleccionando directorio:\n\n' + error.message);
+    }
+  };
+
+  const downloadModel = async () => {
+    if (!ollamaModel) {
+      alert('❌ Por favor selecciona un modelo primero');
+      return;
+    }
+
+    setDownloadingModel(true);
+    setDownloadProgress('Iniciando descarga...');
+    
+    try {
+      // Configurar listener para progreso
+      const progressListener = (event, data) => {
+        if (data.type === 'progress') {
+          setDownloadProgress(data.data);
+        } else if (data.type === 'error') {
+          setDownloadProgress('Error: ' + data.data);
+        }
+      };
+      
+      window.electronAPI.onOllamaDownloadProgress(progressListener);
+      
+      // Iniciar descarga
+      const result = await window.electronAPI.downloadOllamaModel({
+        model: ollamaModel,
+        customPath: modelDirectory || null
+      });
+      
+      if (result.success) {
+        setDownloadProgress('✅ Descarga completada');
+        alert(`✅ Modelo ${ollamaModel} descargado exitosamente!`);
+        setAiConfigStatus('configured');
+      } else {
+        throw new Error(result.message || 'Error desconocido');
+      }
+      
+    } catch (error) {
+      console.error('Error descargando modelo:', error);
+      setDownloadProgress('❌ Error en descarga');
+      alert('❌ Error descargando modelo:\n\n' + error.message);
+    } finally {
+      setDownloadingModel(false);
+      // Limpiar listener
+      window.electronAPI.removeAllListeners('ollama-download-progress');
+    }
+  };
+
+  const checkOllamaInstallation = async () => {
+    try {
+      const installed = await window.electronAPI.checkOllamaInstalled();
+      setOllamaInstalled(installed);
+      return installed;
+    } catch (error) {
+      console.error('Error verificando instalación de Ollama:', error);
+      setOllamaInstalled(false);
+      return false;
+    }
+  };
+
+  const searchExistingModels = async () => {
+    setSearchingModels(true);
+    try {
+      const models = await window.electronAPI.searchOllamaModels();
+      setFoundModels(models);
+      setShowFoundModels(true);
+      
+      if (models.length === 0) {
+        alert('🔍 No se encontraron modelos de Ollama instalados en el sistema.\n\nPuedes descargar un modelo nuevo usando el botón "Descargar Modelo".');
+      } else {
+        alert(`🔍 Se encontraron ${models.length} modelo(s) de Ollama instalado(s) en el sistema.\n\nRevisa la lista de modelos encontrados para usar uno existente.`);
+      }
+    } catch (error) {
+      console.error('Error buscando modelos:', error);
+      alert('❌ Error buscando modelos existentes:\n\n' + error.message);
+    } finally {
+      setSearchingModels(false);
+    }
+  };
+
+  const useExistingModel = async (model) => {
+    try {
+      const result = await window.electronAPI.useExistingModel({
+        modelPath: model.fullPath,
+        modelName: model.name
+      });
+      
+      if (result.success) {
+        setOllamaModel(model.name);
+        setModelDirectory(model.location);
+        setAiConfigStatus('configured');
+        alert(`✅ Modelo ${model.name} configurado exitosamente!\n\nUbicación: ${model.location}`);
+        setShowFoundModels(false);
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('Error usando modelo existente:', error);
+      alert('❌ Error configurando modelo existente:\n\n' + error.message);
+    }
+  };
+
   const handleOptionChange = (category, value) => {
     setOptions(prev => ({
       ...prev,
       [category]: value
     }));
     setSelectedOption({ category, value });
+  };
+
+  const handleAIProviderChange = async (provider) => {
+    setAiProvider(provider);
+    // Actualizar el estado de configuración cuando se cambia el proveedor
+    await checkAIConfigStatus();
   };
 
   // Función para obtener la descripción de cada opción
@@ -301,6 +506,15 @@ const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
   };
 
   return (
+    <>
+      <style>
+        {`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}
+      </style>
     <div style={{
       position: 'fixed',
       top: 0,
@@ -332,7 +546,7 @@ const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
           borderBottom: '2px solid #34495e',
           paddingBottom: '16px'
         }}>
-          <h2 style={{ margin: 0, color: '#ecf0f1' }}>⚙️ Opciones de Partida</h2>
+          <h2 style={{ margin: 0, color: '#ecf0f1' }}>⚙️ {t('options.title')}</h2>
           <button
             onClick={onClose}
             style={{
@@ -346,6 +560,60 @@ const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
           >
             ✕
           </button>
+        </div>
+        
+        {/* Selector de idioma / Language selector */}
+        <div style={{
+          marginBottom: '24px',
+          padding: '16px',
+          backgroundColor: '#2c3e50',
+          borderRadius: '8px',
+          border: '1px solid #34495e'
+        }}>
+          <h3 style={{ 
+            margin: '0 0 12px 0', 
+            color: '#ecf0f1',
+            fontSize: '16px',
+            fontWeight: 'bold'
+          }}>
+            {t('options.language')}
+          </h3>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <label style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px',
+              color: '#ecf0f1',
+              cursor: 'pointer'
+            }}>
+              <input
+                type="radio"
+                name="language"
+                value="es"
+                checked={language === 'es'}
+                onChange={(e) => changeLanguage(e.target.value)}
+                style={{ margin: 0 }}
+              />
+              {t('options.spanish')}
+            </label>
+            <label style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px',
+              color: '#ecf0f1',
+              cursor: 'pointer'
+            }}>
+              <input
+                type="radio"
+                name="language"
+                value="en"
+                checked={language === 'en'}
+                onChange={(e) => changeLanguage(e.target.value)}
+                style={{ margin: 0 }}
+              />
+              {t('options.english')}
+            </label>
+          </div>
         </div>
 
                  {/* Sección de Configuración de IA */}
@@ -365,27 +633,115 @@ const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
              <label style={{ 
                display: 'block', 
                color: '#ecf0f1', 
-               marginBottom: '8px',
-               fontWeight: 'bold'
+               marginBottom: '12px',
+               fontWeight: 'bold',
+               fontSize: '16px'
              }}>
-               Proveedor de IA
+               🤖 {t('ai.provider')}
              </label>
-             <select
-               value={aiProvider}
-               onChange={(e) => setAiProvider(e.target.value)}
+             
+             {/* Botones de selección */}
+             <div style={{
+               display: 'flex',
+               gap: '12px',
+               marginBottom: '16px'
+             }}>
+               <button
+                 onClick={() => handleAIProviderChange('openai')}
                style={{
-                 width: '100%',
-                 padding: '12px',
-                 borderRadius: '8px',
-                 border: '1px solid #2c3e50',
-                 backgroundColor: '#2c3e50',
+                   flex: 1,
+                   padding: '16px 20px',
+                   borderRadius: '12px',
+                   border: aiProvider === 'openai' ? '3px solid #27ae60' : '2px solid #34495e',
+                   backgroundColor: aiProvider === 'openai' ? 'rgba(39, 174, 96, 0.2)' : '#34495e',
                  color: 'white',
-                 fontSize: '14px'
-               }}
-             >
-               <option value="openai">🔑 OpenAI (GPT-4)</option>
-               <option value="ollama">🦙 Ollama (Local)</option>
-             </select>
+                   cursor: 'pointer',
+                   fontSize: '14px',
+                   fontWeight: 'bold',
+                   transition: 'all 0.3s ease',
+                   display: 'flex',
+                   flexDirection: 'column',
+                   alignItems: 'center',
+                   gap: '8px'
+                 }}
+               >
+                 <div style={{ fontSize: '24px' }}>🔑</div>
+                 <div>{t('ai.openai')}</div>
+                 <div style={{ 
+                   fontSize: '11px', 
+                   opacity: 0.8,
+                   textAlign: 'center',
+                   lineHeight: '1.3'
+                 }}>
+                   Requiere API Key<br/>
+                   Más potente y rápido
+                 </div>
+               </button>
+               
+               <button
+                 onClick={() => handleAIProviderChange('ollama')}
+                 style={{
+                   flex: 1,
+                   padding: '16px 20px',
+                   borderRadius: '12px',
+                   border: aiProvider === 'ollama' ? '3px solid #27ae60' : '2px solid #34495e',
+                   backgroundColor: aiProvider === 'ollama' ? 'rgba(39, 174, 96, 0.2)' : '#34495e',
+                   color: 'white',
+                   cursor: 'pointer',
+                   fontSize: '14px',
+                   fontWeight: 'bold',
+                   transition: 'all 0.3s ease',
+                   display: 'flex',
+                   flexDirection: 'column',
+                   alignItems: 'center',
+                   gap: '8px'
+                 }}
+               >
+                 <div style={{ fontSize: '24px' }}>🦙</div>
+                 <div>Ollama (Local)</div>
+                 <div style={{ 
+                   fontSize: '11px', 
+                   opacity: 0.8,
+                   textAlign: 'center',
+                   lineHeight: '1.3'
+                 }}>
+                   Gratuito y privado<br/>
+                   Funciona offline
+                 </div>
+               </button>
+             </div>
+             
+             {/* Información del proveedor seleccionado */}
+             <div style={{
+               padding: '12px 16px',
+               backgroundColor: aiProvider === 'openai' ? 'rgba(52, 152, 219, 0.1)' : 'rgba(155, 89, 182, 0.1)',
+               border: `1px solid ${aiProvider === 'openai' ? '#3498db' : '#9b59b6'}`,
+               borderRadius: '8px',
+               fontSize: '13px',
+               color: '#ecf0f1'
+             }}>
+               {aiProvider === 'openai' ? (
+                 <>
+                   <strong style={{ color: '#3498db' }}>🔑 {t('ai.openai')}</strong>
+                   <div style={{ marginTop: '4px', lineHeight: '1.4' }}>
+                     • Respuestas más rápidas y precisas<br/>
+                     • Mejor comprensión del contexto<br/>
+                     • Requiere conexión a internet<br/>
+                     • Costo por uso (muy económico)
+                   </div>
+                 </>
+               ) : (
+                 <>
+                   <strong style={{ color: '#9b59b6' }}>🦙 Ollama (Local)</strong>
+                   <div style={{ marginTop: '4px', lineHeight: '1.4' }}>
+                     • Completamente gratuito<br/>
+                     • Funciona sin conexión a internet<br/>
+                     • Datos privados (no se envían a servidores)<br/>
+                     • Requiere instalación local
+                   </div>
+                 </>
+               )}
+             </div>
            </div>
 
            {/* Configuración de OpenAI */}
@@ -397,7 +753,7 @@ const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
                  marginBottom: '8px',
                  fontWeight: 'bold'
                }}>
-                 API Key de OpenAI
+                 {t('ai.apiKey')}
                </label>
                <div style={{ position: 'relative' }}>
                  <input
@@ -468,14 +824,74 @@ const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
            {/* Configuración de Ollama */}
            {aiProvider === 'ollama' && (
              <div style={{ marginBottom: '16px' }}>
+               <div style={{
+                 padding: '16px',
+                 backgroundColor: 'rgba(155, 89, 182, 0.1)',
+                 border: '1px solid #9b59b6',
+                 borderRadius: '8px',
+                 marginBottom: '16px'
+               }}>
+                 <div style={{ 
+                   display: 'flex', 
+                   alignItems: 'center', 
+                   justifyContent: 'space-between',
+                   marginBottom: '12px'
+                 }}>
+                   <h4 style={{ 
+                     color: '#9b59b6', 
+                     margin: '0',
+                     fontSize: '14px',
+                     fontWeight: 'bold'
+                   }}>
+                     🛠️ Configuración de Ollama
+                   </h4>
+                   
+                   {/* Indicador de modo desarrollador para Ollama */}
+                   {developerMode && (
+                     <div style={{
+                       display: 'flex',
+                       alignItems: 'center',
+                       gap: '6px',
+                       padding: '4px 8px',
+                       backgroundColor: 'rgba(231, 76, 60, 0.2)',
+                       border: '1px solid #e74c3c',
+                       borderRadius: '6px',
+                       fontSize: '11px',
+                       color: '#e74c3c',
+                       fontWeight: 'bold'
+                     }}>
+                       <div style={{ fontSize: '12px' }}>🔧</div>
+                       <span>Modo Dev</span>
+                     </div>
+                   )}
+                 </div>
+                 
+                 {/* Nota sobre modo desarrollador para Ollama */}
+                 {developerMode && (
+                   <div style={{
+                     padding: '8px 12px',
+                     backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                     border: '1px solid #e74c3c',
+                     borderRadius: '6px',
+                     marginBottom: '12px',
+                     fontSize: '11px',
+                     color: '#ecf0f1',
+                     lineHeight: '1.4'
+                   }}>
+                     <strong style={{ color: '#e74c3c' }}>🔧 Modo Desarrollador Activo para Ollama</strong><br/>
+                     Ollama responderá de manera técnica y directa para ayudarte a probar mecánicas y desarrollar el juego.
+                   </div>
+                 )}
+                 
                <div style={{ marginBottom: '12px' }}>
                  <label style={{ 
                    display: 'block', 
                    color: '#ecf0f1', 
                    marginBottom: '8px',
-                   fontWeight: 'bold'
+                     fontWeight: 'bold',
+                     fontSize: '13px'
                  }}>
-                   URL de Ollama
+                     🌐 URL del Servidor Ollama
                  </label>
                  <input
                    type="text"
@@ -492,6 +908,13 @@ const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
                      fontSize: '14px'
                    }}
                  />
+                   <div style={{ 
+                     fontSize: '11px', 
+                     color: '#bdc3c7', 
+                     marginTop: '4px'
+                   }}>
+                     Por defecto: http://localhost:11434
+                   </div>
                </div>
                
                <div style={{ marginBottom: '12px' }}>
@@ -499,9 +922,10 @@ const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
                    display: 'block', 
                    color: '#ecf0f1', 
                    marginBottom: '8px',
-                   fontWeight: 'bold'
+                     fontWeight: 'bold',
+                     fontSize: '13px'
                  }}>
-                   Modelo de Ollama
+                     🦙 Modelo de IA
                  </label>
                  <select
                    value={ollamaModel}
@@ -516,53 +940,669 @@ const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
                      fontSize: '14px'
                    }}
                  >
-                   <option value="llama3.2">🦙 Llama 3.2 (Recomendado)</option>
-                   <option value="llama3.1">🦙 Llama 3.1</option>
-                   <option value="llama2">🦙 Llama 2</option>
-                   <option value="mistral">🌪️ Mistral</option>
-                   <option value="codellama">💻 Code Llama</option>
-                   <option value="phi3">Φ Phi-3</option>
+                     {/* Modelos Pequeños (1-8GB) */}
+                     <optgroup label="🟢 Modelos Pequeños (1-8GB)">
+                       <option value="gemma:2b">💎 Gemma 2B (1.6GB) - Muy rápido</option>
+                       <option value="phi3:mini">Φ Phi-3 Mini (2.3GB) - Rápido</option>
+                       <option value="llama3.2:3b">🦙 Llama 3.2 3B (2GB) - Equilibrado</option>
+                       <option value="llama3.2">🦙 Llama 3.2 8B (4.7GB) - Recomendado</option>
+                       <option value="mistral:7b">🌪️ Mistral 7B (4.1GB) - Bueno para código</option>
+                       <option value="codellama:7b">💻 Code Llama 7B (3.8GB) - Especializado en código</option>
+                     </optgroup>
+                     
+                     {/* Modelos Medianos (8-20GB) */}
+                     <optgroup label="🟡 Modelos Medianos (8-20GB)">
+                       <option value="llama3.1:8b">🦙 Llama 3.1 8B (4.7GB) - Mejorado</option>
+                       <option value="llama3.2:8b">🦙 Llama 3.2 8B (4.7GB) - Más reciente</option>
+                       <option value="mistral:8x7b">🌪️ Mistral 8x7B (12GB) - Muy potente</option>
+                       <option value="qwen2.5:14b">🐉 Qwen 2.5 14B (8.4GB) - Multilingüe</option>
+                       <option value="deepseek-coder:6.7b">🔍 DeepSeek Coder 6.7B (4.1GB) - Código avanzado</option>
+                     </optgroup>
+                     
+                     {/* Modelos Grandes (20-40GB) */}
+                     <optgroup label="🟠 Modelos Grandes (20-40GB)">
+                       <option value="llama3.1:70b">🦙 Llama 3.1 70B (40GB) - Muy potente</option>
+                       <option value="llama3.2:70b">🦙 Llama 3.2 70B (40GB) - Máximo rendimiento</option>
+                       <option value="qwen2.5:32b">🐉 Qwen 2.5 32B (19GB) - Excelente calidad</option>
+                       <option value="mistral-nemo:12b">🌪️ Mistral Nemo 12B (7.2GB) - Optimizado</option>
+                     </optgroup>
+                     
+                     {/* Modelos Especializados */}
+                     <optgroup label="🔵 Modelos Especializados">
+                       <option value="llava:7b">👁️ LLaVA 7B (4.7GB) - Multimodal (texto + imagen)</option>
+                       <option value="bakllava:7b">🎨 BakLLaVA 7B (4.7GB) - Análisis de imágenes</option>
+                       <option value="nomic-embed-text">📝 Nomic Embed Text (274MB) - Embeddings</option>
+                       <option value="solar:10.7b">☀️ Solar 10.7B (6.4GB) - Coreano/Inglés</option>
+                     </optgroup>
                  </select>
+                   <div style={{ 
+                     fontSize: '11px', 
+                     color: '#bdc3c7', 
+                     marginTop: '4px',
+                     lineHeight: '1.4'
+                   }}>
+                     💡 <strong>Recomendaciones de hardware:</strong><br/>
+                     • Modelos pequeños: 8GB RAM mínimo<br/>
+                     • Modelos medianos: 16GB RAM + GPU recomendada<br/>
+                     • Modelos grandes: 32GB+ RAM + GPU potente (40GB+ VRAM)
+                   </div>
+                 </div>
                </div>
                
-               <p style={{ 
+               {/* Botones de análisis y prueba */}
+               <div style={{ marginBottom: '12px', display: 'flex', gap: '8px' }}>
+                 <button
+                   onClick={analyzeHardware}
+                   disabled={analyzingHardware}
+                   style={{
+                     flex: 1,
+                     padding: '12px 16px',
+                     borderRadius: '8px',
+                     border: 'none',
+                     backgroundColor: analyzingHardware ? '#95a5a6' : '#9b59b6',
+                     color: 'white',
+                     cursor: analyzingHardware ? 'not-allowed' : 'pointer',
+                     fontSize: '14px',
+                     fontWeight: 'bold',
+                     transition: 'all 0.3s ease',
+                     display: 'flex',
+                     alignItems: 'center',
+                     justifyContent: 'center',
+                     gap: '8px'
+                   }}
+                 >
+                   {analyzingHardware ? (
+                     <>
+                       <div style={{ 
+                         width: '16px', 
+                         height: '16px', 
+                         border: '2px solid #fff',
+                         borderTop: '2px solid transparent',
+                         borderRadius: '50%',
+                         animation: 'spin 1s linear infinite'
+                       }}></div>
+                       Analizando...
+                     </>
+                   ) : (
+                     <>
+                       🔍 Analizar Hardware
+                     </>
+                   )}
+                 </button>
+                 
+                 <button
+                   onClick={testOllamaConnection}
+                   disabled={testingConnection}
+                   style={{
+                     flex: 1,
+                     padding: '12px 16px',
+                     borderRadius: '8px',
+                     border: 'none',
+                     backgroundColor: testingConnection ? '#95a5a6' : '#3498db',
+                     color: 'white',
+                     cursor: testingConnection ? 'not-allowed' : 'pointer',
+                     fontSize: '14px',
+                     fontWeight: 'bold',
+                     transition: 'all 0.3s ease',
+                     display: 'flex',
+                     alignItems: 'center',
+                     justifyContent: 'center',
+                     gap: '8px'
+                   }}
+                 >
+                   {testingConnection ? (
+                     <>
+                       <div style={{ 
+                         width: '16px', 
+                         height: '16px', 
+                         border: '2px solid #fff',
+                         borderTop: '2px solid transparent',
+                         borderRadius: '50%',
+                         animation: 'spin 1s linear infinite'
+                       }}></div>
+                       Probando...
+                     </>
+                   ) : (
+                     <>
+                       🔗 Probar Conexión
+                     </>
+                   )}
+                 </button>
+               </div>
+
+               {/* Sección de descarga de modelos */}
+               <div style={{
+                 padding: '16px',
+                 backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                 border: '1px solid #2ecc71',
+                 borderRadius: '8px',
+                 marginBottom: '12px'
+               }}>
+                 <div style={{ 
+                   display: 'flex', 
+                   alignItems: 'center', 
+                   gap: '8px',
+                   marginBottom: '12px'
+                 }}>
+                   <div style={{ fontSize: '20px' }}>📥</div>
+                   <strong style={{ color: '#2ecc71', fontSize: '14px' }}>
+                     Descargar Modelo
+                   </strong>
+                 </div>
+                 
+                 {/* Estado de instalación de Ollama */}
+                 <div style={{ marginBottom: '12px' }}>
+                   <div style={{ 
+                     display: 'flex', 
+                     alignItems: 'center', 
+                     gap: '8px',
+                     fontSize: '12px'
+                   }}>
+                     <div style={{ 
+                       width: '8px', 
+                       height: '8px', 
+                       borderRadius: '50%',
+                       backgroundColor: ollamaInstalled ? '#2ecc71' : '#e74c3c'
+                     }}></div>
+                     <span style={{ color: ollamaInstalled ? '#2ecc71' : '#e74c3c' }}>
+                       {ollamaInstalled ? 'Ollama instalado' : 'Ollama no detectado'}
+                     </span>
+                   </div>
+                 </div>
+                 
+                 {/* Selector de directorio */}
+                 <div style={{ marginBottom: '12px' }}>
+                   <label style={{ 
+                     display: 'block',
                  fontSize: '12px', 
                  color: '#bdc3c7', 
+                     marginBottom: '4px'
+                   }}>
+                     📁 Directorio de modelos (opcional)
+                   </label>
+                   <div style={{ display: 'flex', gap: '8px' }}>
+                     <input
+                       type="text"
+                       value={modelDirectory}
+                       placeholder="Por defecto: ~/.ollama/models"
+                       readOnly
+                       style={{
+                         flex: 1,
+                         padding: '8px 12px',
+                         borderRadius: '6px',
+                         border: '1px solid #2c3e50',
+                         backgroundColor: '#34495e',
+                         color: '#ecf0f1',
+                         fontSize: '12px'
+                       }}
+                     />
+                     <button
+                       onClick={selectModelDirectory}
+                       style={{
+                         padding: '8px 12px',
+                         borderRadius: '6px',
+                         border: 'none',
+                         backgroundColor: '#34495e',
+                         color: '#ecf0f1',
+                         cursor: 'pointer',
+                         fontSize: '12px',
+                         whiteSpace: 'nowrap'
+                       }}
+                     >
+                       📁 Elegir
+                     </button>
+                   </div>
+                 </div>
+                 
+                 {/* Botón de descarga */}
+                 <button
+                   onClick={downloadModel}
+                   disabled={downloadingModel || !ollamaInstalled}
+                   style={{
+                     width: '100%',
+                     padding: '12px 16px',
+                     borderRadius: '8px',
+                     border: 'none',
+                     backgroundColor: downloadingModel || !ollamaInstalled ? '#95a5a6' : '#2ecc71',
+                     color: 'white',
+                     cursor: downloadingModel || !ollamaInstalled ? 'not-allowed' : 'pointer',
+                     fontSize: '14px',
+                     fontWeight: 'bold',
+                     transition: 'all 0.3s ease',
+                     display: 'flex',
+                     alignItems: 'center',
+                     justifyContent: 'center',
+                     gap: '8px'
+                   }}
+                 >
+                   {downloadingModel ? (
+                     <>
+                       <div style={{ 
+                         width: '16px', 
+                         height: '16px', 
+                         border: '2px solid #fff',
+                         borderTop: '2px solid transparent',
+                         borderRadius: '50%',
+                         animation: 'spin 1s linear infinite'
+                       }}></div>
+                       Descargando...
+                     </>
+                   ) : (
+                     <>
+                       📥 Descargar {ollamaModel}
+                     </>
+                   )}
+                 </button>
+                 
+                 {/* Progreso de descarga */}
+                 {downloadProgress && (
+                   <div style={{
                  marginTop: '8px',
+                     padding: '8px 12px',
+                     backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                     borderRadius: '6px',
+                     fontSize: '11px',
+                     color: '#ecf0f1',
+                     fontFamily: 'monospace',
+                     whiteSpace: 'pre-wrap',
+                     maxHeight: '100px',
+                     overflow: 'auto'
+                   }}>
+                     {downloadProgress}
+                   </div>
+                 )}
+               </div>
+
+               {/* Sección de búsqueda de modelos existentes */}
+               <div style={{
+                 padding: '16px',
+                 backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                 border: '1px solid #3498db',
+                 borderRadius: '8px',
+                 marginBottom: '12px'
+               }}>
+                 <div style={{ 
+                   display: 'flex', 
+                   alignItems: 'center', 
+                   gap: '8px',
+                   marginBottom: '12px'
+                 }}>
+                   <div style={{ fontSize: '20px' }}>🔍</div>
+                   <strong style={{ color: '#3498db', fontSize: '14px' }}>
+                     Buscar Modelos Existentes
+                   </strong>
+                 </div>
+                 
+                 <div style={{ marginBottom: '12px' }}>
+                   <p style={{ 
+                     fontSize: '12px', 
+                     color: '#bdc3c7', 
+                     margin: '0 0 8px 0',
                  lineHeight: '1.4'
                }}>
-                 Asegúrate de tener{' '}
-                 <a 
+                     Busca modelos de Ollama ya instalados en tu sistema para evitar descargas duplicadas.
+                   </p>
+                 </div>
+                 
+                 <button
+                   onClick={searchExistingModels}
+                   disabled={searchingModels}
+                   style={{
+                     width: '100%',
+                     padding: '12px 16px',
+                     borderRadius: '8px',
+                     border: 'none',
+                     backgroundColor: searchingModels ? '#95a5a6' : '#3498db',
+                     color: 'white',
+                     cursor: searchingModels ? 'not-allowed' : 'pointer',
+                     fontSize: '14px',
+                     fontWeight: 'bold',
+                     transition: 'all 0.3s ease',
+                     display: 'flex',
+                     alignItems: 'center',
+                     justifyContent: 'center',
+                     gap: '8px'
+                   }}
+                 >
+                   {searchingModels ? (
+                     <>
+                       <div style={{ 
+                         width: '16px', 
+                         height: '16px', 
+                         border: '2px solid #fff',
+                         borderTop: '2px solid transparent',
+                         borderRadius: '50%',
+                         animation: 'spin 1s linear infinite'
+                       }}></div>
+                       Buscando...
+                     </>
+                   ) : (
+                     <>
+                       🔍 Buscar Modelos Instalados
+                     </>
+                   )}
+                 </button>
+               </div>
+
+               {/* Lista de modelos encontrados */}
+               {showFoundModels && foundModels.length > 0 && (
+                 <div style={{
+                   padding: '16px',
+                   backgroundColor: 'rgba(155, 89, 182, 0.1)',
+                   border: '1px solid #9b59b6',
+                   borderRadius: '8px',
+                   marginBottom: '12px'
+                 }}>
+                   <div style={{ 
+                     display: 'flex', 
+                     alignItems: 'center', 
+                     justifyContent: 'space-between',
+                     marginBottom: '12px'
+                   }}>
+                     <div style={{ 
+                       display: 'flex', 
+                       alignItems: 'center', 
+                       gap: '8px'
+                     }}>
+                       <div style={{ fontSize: '20px' }}>📦</div>
+                       <strong style={{ color: '#9b59b6', fontSize: '14px' }}>
+                         Modelos Encontrados ({foundModels.length})
+                       </strong>
+                     </div>
+                     <button
+                       onClick={() => setShowFoundModels(false)}
+                       style={{
+                         background: 'none',
+                         border: 'none',
+                         color: '#9b59b6',
+                         cursor: 'pointer',
+                         fontSize: '16px',
+                         padding: '4px'
+                       }}
+                     >
+                       ✕
+                     </button>
+                   </div>
+                   
+                   <div style={{ 
+                     maxHeight: '200px', 
+                     overflowY: 'auto',
+                     display: 'flex',
+                     flexDirection: 'column',
+                     gap: '8px'
+                   }}>
+                     {foundModels.map((model, index) => (
+                       <div
+                         key={index}
+                         style={{
+                           padding: '12px',
+                           backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                           borderRadius: '6px',
+                           border: '1px solid #9b59b6'
+                         }}
+                       >
+                         <div style={{ 
+                           display: 'flex', 
+                           justifyContent: 'space-between',
+                           alignItems: 'flex-start',
+                           marginBottom: '8px'
+                         }}>
+                           <div>
+                             <div style={{ 
+                               fontWeight: 'bold', 
+                               color: '#ecf0f1',
+                               fontSize: '13px'
+                             }}>
+                               {model.name}
+                             </div>
+                             <div style={{ 
+                               fontSize: '11px', 
+                               color: '#bdc3c7',
+                               marginTop: '2px'
+                             }}>
+                               📁 {model.location}
+                             </div>
+                           </div>
+                           <button
+                             onClick={() => useExistingModel(model)}
+                             style={{
+                               padding: '6px 12px',
+                               borderRadius: '4px',
+                               border: 'none',
+                               backgroundColor: '#9b59b6',
+                               color: 'white',
+                               cursor: 'pointer',
+                               fontSize: '11px',
+                               fontWeight: 'bold',
+                               whiteSpace: 'nowrap'
+                             }}
+                           >
+                             Usar
+                           </button>
+                         </div>
+                         
+                         <div style={{ 
+                           display: 'flex', 
+                           justifyContent: 'space-between',
+                           fontSize: '11px',
+                           color: '#95a5a6'
+                         }}>
+                           <span>📏 {model.size}</span>
+                           <span>📅 {new Date(model.modified).toLocaleDateString()}</span>
+                         </div>
+                       </div>
+                     ))}
+                   </div>
+                 </div>
+               )}
+               
+               {/* Resultados del análisis de hardware */}
+               {hardwareAnalysis && (
+                 <div style={{
+                   padding: '16px',
+                   backgroundColor: 'rgba(155, 89, 182, 0.1)',
+                   border: '1px solid #9b59b6',
+                   borderRadius: '8px',
+                   fontSize: '13px',
+                   color: '#ecf0f1',
+                   lineHeight: '1.5',
+                   marginBottom: '12px'
+                 }}>
+                   <div style={{ 
+                     display: 'flex', 
+                     alignItems: 'center', 
+                     gap: '8px',
+                     marginBottom: '12px'
+                   }}>
+                     <div style={{ fontSize: '20px' }}>🔍</div>
+                     <strong style={{ color: '#9b59b6', fontSize: '14px' }}>
+                       Análisis de Hardware Completado
+                     </strong>
+                   </div>
+                   
+                   {/* Rating del sistema */}
+                   <div style={{ marginBottom: '12px' }}>
+                     <div style={{ 
+                       color: hardwareAnalyzer.getSystemRatingDescription(hardwareAnalysis.recommendations.systemRating).color,
+                       fontWeight: 'bold',
+                       marginBottom: '4px'
+                     }}>
+                       {hardwareAnalyzer.getSystemRatingDescription(hardwareAnalysis.recommendations.systemRating).title}
+                     </div>
+                     <div style={{ fontSize: '12px', opacity: 0.9 }}>
+                       {hardwareAnalyzer.getSystemRatingDescription(hardwareAnalysis.recommendations.systemRating).description}
+                     </div>
+                   </div>
+                   
+                   {/* Recomendación principal */}
+                   <div style={{ marginBottom: '12px' }}>
+                     <strong style={{ color: '#f39c12' }}>🎯 Recomendación Principal:</strong>
+                     <div style={{ marginTop: '4px' }}>
+                       {(() => {
+                         const modelInfo = hardwareAnalyzer.getModelInfo(hardwareAnalysis.recommendations.primary);
+                         return (
+                           <div>
+                             <strong>{modelInfo.name}</strong> ({modelInfo.size})<br/>
+                             <div style={{ fontSize: '11px', opacity: 0.8 }}>
+                               {modelInfo.description}<br/>
+                               Requisitos: {modelInfo.requirements}
+                             </div>
+                           </div>
+                         );
+                       })()}
+                     </div>
+                   </div>
+                   
+                   {/* Alternativas */}
+                   <div style={{ marginBottom: '12px' }}>
+                     <strong style={{ color: '#3498db' }}>🔄 Alternativas:</strong>
+                     <div style={{ marginTop: '4px', fontSize: '12px' }}>
+                       {hardwareAnalysis.recommendations.alternatives.slice(0, 3).map((alt, index) => {
+                         const modelInfo = hardwareAnalyzer.getModelInfo(alt);
+                         return (
+                           <div key={index} style={{ marginBottom: '2px' }}>
+                             • {modelInfo.name} ({modelInfo.size})
+                           </div>
+                         );
+                       })}
+                     </div>
+                   </div>
+                   
+                   {/* Advertencias */}
+                   {hardwareAnalysis.recommendations.warnings.length > 0 && (
+                     <div>
+                       <strong style={{ color: '#e74c3c' }}>⚠️ Advertencias:</strong>
+                       <div style={{ marginTop: '4px', fontSize: '12px' }}>
+                         {hardwareAnalysis.recommendations.warnings.map((warning, index) => (
+                           <div key={index} style={{ marginBottom: '2px' }}>
+                             • {warning}
+                           </div>
+                         ))}
+                       </div>
+                     </div>
+                   )}
+                 </div>
+               )}
+
+               {/* Información sobre modelos grandes */}
+               {ollamaModel.includes('70b') && (
+                 <div style={{
+                   padding: '12px 16px',
+                   backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                   border: '1px solid #e74c3c',
+                   borderRadius: '8px',
+                   fontSize: '12px',
+                   color: '#ecf0f1',
+                   lineHeight: '1.5',
+                   marginBottom: '12px'
+                 }}>
+                   <strong style={{ color: '#e74c3c' }}>⚠️ Modelo de Alto Rendimiento Seleccionado</strong>
+                   <div style={{ marginTop: '8px' }}>
+                     <strong>Requisitos mínimos para Llama 70B:</strong><br/>
+                     • 32GB+ RAM (recomendado 64GB)<br/>
+                     • GPU con 40GB+ VRAM (RTX 4090, A100, H100)<br/>
+                     • SSD rápido para el modelo (40GB+ espacio)<br/>
+                     • Descarga puede tomar 1-2 horas<br/>
+                     • Primera ejecución puede ser lenta
+                   </div>
+                 </div>
+               )}
+               
+               {/* Instrucciones de instalación */}
+               <div style={{
+                 padding: '12px 16px',
+                 backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                 border: '1px solid #3498db',
+                 borderRadius: '8px',
+                 fontSize: '12px',
+                 color: '#ecf0f1',
+                 lineHeight: '1.5'
+               }}>
+                 <strong style={{ color: '#3498db' }}>📋 Instrucciones de Instalación:</strong>
+                 <div style={{ marginTop: '8px' }}>
+                   1. <a 
                    href="https://ollama.ai" 
                    target="_blank" 
                    rel="noopener noreferrer"
                    style={{ color: '#3498db', textDecoration: 'underline' }}
                  >
-                   Ollama instalado
-                 </a>
-                 {' '}y ejecutándose, y que el modelo seleccionado esté descargado.
-               </p>
+                     Descarga Ollama
+                   </a> e instálalo en tu sistema<br/>
+                   2. Abre una terminal y ejecuta: <code style={{ 
+                     backgroundColor: '#2c3e50', 
+                     padding: '2px 4px', 
+                     borderRadius: '3px',
+                     color: '#f39c12'
+                   }}>ollama serve</code><br/>
+                   3. En otra terminal, descarga el modelo: <code style={{ 
+                     backgroundColor: '#2c3e50', 
+                     padding: '2px 4px', 
+                     borderRadius: '3px',
+                     color: '#f39c12'
+                   }}>ollama pull {ollamaModel}</code><br/>
+                   4. <strong>Para modelos grandes (70B):</strong> Asegúrate de tener suficiente RAM y VRAM<br/>
+                   5. Usa el botón "Probar Conexión" para verificar
+                 </div>
+               </div>
              </div>
            )}
 
            {/* Estado de la Configuración */}
            <div style={{
-             marginTop: '12px',
-             padding: '8px 12px',
+             marginTop: '16px',
+             padding: '12px 16px',
              backgroundColor: 
+               aiConfigStatus === 'checking' ? 'rgba(243, 156, 18, 0.2)' :
+               aiConfigStatus === 'configured' ? 'rgba(39, 174, 96, 0.2)' : 'rgba(231, 76, 60, 0.2)',
+             border: `2px solid ${
                aiConfigStatus === 'checking' ? '#f39c12' :
-               aiConfigStatus === 'configured' ? '#27ae60' : '#e74c3c',
-             borderRadius: '6px',
-             fontSize: '12px',
+               aiConfigStatus === 'configured' ? '#27ae60' : '#e74c3c'
+             }`,
+             borderRadius: '8px',
+             fontSize: '13px',
              color: 'white',
              fontWeight: 'bold',
              display: 'flex',
              alignItems: 'center',
-             gap: '8px'
+             gap: '12px'
            }}>
-             {aiConfigStatus === 'checking' && '⏳ Verificando configuración...'}
-             {aiConfigStatus === 'configured' && `✅ ${aiProvider === 'openai' ? 'OpenAI' : 'Ollama'} configurado y listo`}
-             {aiConfigStatus === 'not-configured' && `❌ ${aiProvider === 'openai' ? 'OpenAI' : 'Ollama'} no configurado`}
+             <div style={{ fontSize: '20px' }}>
+               {aiConfigStatus === 'checking' && '⏳'}
+               {aiConfigStatus === 'configured' && '✅'}
+               {aiConfigStatus === 'not-configured' && '❌'}
+             </div>
+             <div>
+               {aiConfigStatus === 'checking' && (
+                 <div>
+                   <div>Verificando configuración de {aiProvider === 'openai' ? 'OpenAI' : 'Ollama'}...</div>
+                   <div style={{ fontSize: '11px', opacity: 0.8, marginTop: '2px' }}>
+                     Esto puede tomar unos segundos
+                   </div>
+                 </div>
+               )}
+               {aiConfigStatus === 'configured' && (
+                 <div>
+                   <div>{aiProvider === 'openai' ? '🔑 OpenAI' : '🦙 Ollama'} configurado y listo</div>
+                   <div style={{ fontSize: '11px', opacity: 0.8, marginTop: '2px' }}>
+                     {aiProvider === 'openai' 
+                       ? 'La IA está lista para funcionar con GPT-4'
+                       : 'La IA local está lista para funcionar'
+                     }
+                   </div>
+                 </div>
+               )}
+               {aiConfigStatus === 'not-configured' && (
+                 <div>
+                   <div>{aiProvider === 'openai' ? '🔑 OpenAI' : '🦙 Ollama'} no configurado</div>
+                   <div style={{ fontSize: '11px', opacity: 0.8, marginTop: '2px' }}>
+                     {aiProvider === 'openai' 
+                       ? 'Configura tu API Key para continuar'
+                       : 'Instala Ollama y descarga un modelo'
+                     }
+                   </div>
+                 </div>
+               )}
+             </div>
            </div>
 
           {/* Modo Desarrollador */}
@@ -951,6 +1991,7 @@ const GameOptions = ({ onClose, onSave, currentOptions = {} }) => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

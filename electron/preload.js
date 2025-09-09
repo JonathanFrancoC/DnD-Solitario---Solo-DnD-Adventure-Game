@@ -53,6 +53,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveDeveloperMode: (developerMode) => ipcRenderer.invoke('save-developer-mode', developerMode),
   askOpenAI: (data) => ipcRenderer.invoke('ask-openai', data),
   
+  // Funciones de Ollama
+  selectModelDirectory: () => ipcRenderer.invoke('select-model-directory'),
+  downloadOllamaModel: (data) => ipcRenderer.invoke('download-ollama-model', data),
+  checkOllamaInstalled: () => ipcRenderer.invoke('check-ollama-installed'),
+  getOllamaModels: () => ipcRenderer.invoke('get-ollama-models'),
+  searchOllamaModels: () => ipcRenderer.invoke('search-ollama-models'),
+  useExistingModel: (data) => ipcRenderer.invoke('use-existing-model', data),
+  
   // Eventos
   onNewGame: (callback) => ipcRenderer.on('new-game', callback),
   onLoadGame: (callback) => ipcRenderer.on('load-game', callback),
@@ -61,6 +69,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onGenerateLogbook: (callback) => ipcRenderer.on('generate-logbook', callback),
   onOpenDiceCalculator: (callback) => ipcRenderer.on('open-dice-calculator', callback),
   onOpenRulesReference: (callback) => ipcRenderer.on('open-rules-reference', callback),
+  onOllamaDownloadProgress: (callback) => ipcRenderer.on('ollama-download-progress', callback),
   
   // Remover listeners
   removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel)

@@ -1,0 +1,236 @@
+{
+  "game_state": {
+    "character": {
+      "name": "Keth",
+      "class": "monje",
+      "level": 1,
+      "edition": "5e-2014",
+      "background": "acolito",
+      "playerName": "",
+      "race": "semiorco",
+      "alignment": "Legal Bueno",
+      "experience": 0,
+      "strength": 14,
+      "dexterity": 16,
+      "constitution": 15,
+      "intelligence": 8,
+      "wisdom": 14,
+      "charisma": 8,
+      "armorClass": 13,
+      "initiative": 3,
+      "speed": 30,
+      "maxHP": 10,
+      "currentHP": 10,
+      "tempHP": 0,
+      "hitDice": "1d10",
+      "hitDiceTotal": 1,
+      "proficiencyBonus": 2,
+      "inspiration": false,
+      "savingThrows": {
+        "strength": {
+          "proficient": true,
+          "modifier": 4
+        },
+        "dexterity": {
+          "proficient": true,
+          "modifier": 5
+        },
+        "constitution": {
+          "proficient": false,
+          "modifier": 2
+        },
+        "intelligence": {
+          "proficient": false,
+          "modifier": -1
+        },
+        "wisdom": {
+          "proficient": false,
+          "modifier": 2
+        },
+        "charisma": {
+          "proficient": false,
+          "modifier": -1
+        }
+      },
+      "skills": {
+        "acrobatics": {
+          "proficient": true,
+          "modifier": 5
+        },
+        "athletics": {
+          "proficient": true,
+          "modifier": 4
+        },
+        "arcana": {
+          "proficient": false,
+          "modifier": -1
+        },
+        "deception": {
+          "proficient": false,
+          "modifier": -1
+        },
+        "history": {
+          "proficient": false,
+          "modifier": -1
+        },
+        "insight": {
+          "proficient": true,
+          "modifier": 4
+        },
+        "intimidation": {
+          "proficient": false,
+          "modifier": -1
+        },
+        "investigation": {
+          "proficient": false,
+          "modifier": -1
+        },
+        "medicine": {
+          "proficient": false,
+          "modifier": 2
+        },
+        "nature": {
+          "proficient": false,
+          "modifier": -1
+        },
+        "perception": {
+          "proficient": false,
+          "modifier": 2
+        },
+        "performance": {
+          "proficient": false,
+          "modifier": -1
+        },
+        "persuasion": {
+          "proficient": false,
+          "modifier": -1
+        },
+        "religion": {
+          "proficient": true,
+          "modifier": 1
+        },
+        "sleightOfHand": {
+          "proficient": false,
+          "modifier": 3
+        },
+        "stealth": {
+          "proficient": false,
+          "modifier": 3
+        },
+        "survival": {
+          "proficient": false,
+          "modifier": 2
+        },
+        "animalHandling": {
+          "proficient": false,
+          "modifier": 2
+        }
+      },
+      "feats": [],
+      "passivePerception": 12,
+      "otherProficiencies": "",
+      "personalityTrait": "Procuro ver la chispa de bondad en cualquiera.",
+      "ideal": "Aspiración. Debo ser digno del favor de mi deidad.",
+      "bond": "Debo la vida a un milagro; vivo para retribuirlo.",
+      "flaw": "Me culpo en exceso por mis errores.",
+      "features": "",
+      "equipment": "Los monjes usan Defensa sin Armadura que combina DES + SAB. Espada corta como arma versátil, ataques desarmados como secundaria.",
+      "armor": "Sin armadura (Defensa sin Armadura)",
+      "shield": "Sin escudo",
+      "weapon1": "Espada corta",
+      "weapon2": "Ataques desarmados",
+      "otherEquipment": "Los monjes usan Defensa sin Armadura que combina DES + SAB. Espada corta como arma versátil, ataques desarmados como secundaria.",
+      "creationMode": "guided",
+      "personalityMode": "manual",
+      "attacks": [
+        {
+          "name": "Espada corta",
+          "bonus": "+5",
+          "damage": "1d6"
+        }
+      ],
+      "deathSaves": {
+        "successes": 0,
+        "failures": 0
+      },
+      "age": "",
+      "eyes": "",
+      "height": "",
+      "skin": "",
+      "weight": "",
+      "hair": "",
+      "allies": "",
+      "allies2": "",
+      "backstory": "",
+      "extraTraits": "",
+      "treasure": "",
+      "appearance": "",
+      "cantrips": [],
+      "spells": [],
+      "maxHitPoints": 10,
+      "currentHitPoints": 10,
+      "gender": "masculino",
+      "mechanics": {
+        "ki": {
+          "isActive": false,
+          "currentUses": 0,
+          "maxUses": 0
+        },
+        "martialArts": {
+          "isActive": false,
+          "currentUses": 0,
+          "maxUses": 0
+        }
+      },
+      "startingEquipment": "Bastón, Dagas (10), Mochila de explorador, Ropa de viajero, Poción de curación, Raciones de viaje (5 días)",
+      "spellcasterClass": "monje",
+      "spellcasterLevel": 1,
+      "spellcastingModifier": -1,
+      "spellSaveDC": 9,
+      "spellAttackBonus": 1,
+      "spellSlots": {},
+      "spellcasting": {
+        "class": "monje",
+        "ability": null,
+        "abilityMod": 0,
+        "attackBonus": null,
+        "saveDC": null,
+        "casterLevel": 1
+      },
+      "status": {
+        "alive": true,
+        "lastUpdated": "2025-09-09T18:02:22.321Z"
+      }
+    },
+    "campaignId": "partida_keth_1757440942321",
+    "sessionStart": "2025-09-09T18:02:22.321Z",
+    "world": {
+      "currentLocation": "Taberna del Dragón Durmiente",
+      "discoveredLocations": [
+        "Taberna del Dragón Durmiente"
+      ],
+      "quests": [],
+      "npcs": {
+        "Tabernero": {
+          "name": "Gareth",
+          "description": "Un hombre robusto y amigable que regenta la taberna",
+          "disposition": "friendly",
+          "known": true
+        }
+      },
+      "events": [],
+      "weather": "Soleado",
+      "timeOfDay": "Mediodía"
+    },
+    "combat": {
+      "isActive": false,
+      "currentEnemies": [],
+      "turn": 0,
+      "initiative": [],
+      "effects": []
+    },
+    "messages": [],
+    "lastUpdate": "2025-09-09T18:02:22.321Z"
+  },
+  "saved_at": "2025-09-09T18:02:22.334Z"
+}
